@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilot Photobooth</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#D4A843;--goldd:#8B6914;--goldf:#F5D98B;--black:#080808;--card:#111;--panel:#1A1A1A;--border:#2A2A2A;--white:#F0E8D8;--green:#22D084;--red:#FF4444;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Rajdhani',sans-serif;background:var(--black);color:var(--white);overflow-x:hidden;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:var(--goldd);border-radius:3px;}
+#mainNav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(8,8,8,0.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(212,168,67,0.12);transition:top 0.3s;}
+.nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.nav-logo .ico{width:36px;height:36px;background:linear-gradient(135deg,var(--gold),var(--goldd));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.nav-logo span{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--gold);letter-spacing:2px;}
+.nav-links{display:flex;gap:4px;align-items:center;}
+.nav-links a{color:rgba(240,232,216,0.55);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:7px 13px;border-radius:7px;transition:all 0.2s;cursor:pointer;}
+.nav-links a:hover{color:var(--gold);background:rgba(212,168,67,0.07);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--goldd))!important;color:#000!important;font-weight:700!important;border-radius:8px!important;}
+section{display:none;min-height:100vh;padding-top:64px;}
+section.active{display:block;}
+#home{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:100vh;padding:64px 24px 60px;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(212,168,67,0.05) 0%,transparent 70%);}
+#home.active{display:flex;}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(212,168,67,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,67,0.04) 1px,transparent 1px);background-size:55px 55px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);pointer-events:none;}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(212,168,67,0.3);border-radius:100px;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--gold);margin-bottom:28px;background:rgba(212,168,67,0.05);}
+.badge::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+h1.hero-h1{font-family:'Cinzel',serif;font-size:clamp(32px,5.5vw,72px);font-weight:900;line-height:1.1;animation:fadeUp .7s ease both;}
+.grad-text{background:linear-gradient(135deg,var(--goldf),var(--gold),var(--goldd));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:clamp(15px,1.8vw,20px);color:rgba(240,232,216,0.5);max-width:580px;line-height:1.65;margin:18px auto 36px;animation:fadeUp .7s .1s ease both;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeUp .7s .2s ease both;}
+.btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:linear-gradient(135deg,var(--gold),var(--goldd));color:#000;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-decoration:none;border-radius:10px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(212,168,67,.22);}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(212,168,67,.38);}
+.btn-s{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:transparent;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-decoration:none;border-radius:10px;border:1px solid rgba(212,168,67,.28);cursor:pointer;transition:all .2s;}
+.btn-s:hover{background:rgba(212,168,67,.07);border-color:var(--gold);}
+.feat-strip{display:flex;gap:28px;margin-top:60px;flex-wrap:wrap;justify-content:center;}
+.feat-item{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:1px;color:rgba(240,232,216,.4);}
+.feat-item .dot{width:5px;height:5px;background:var(--gold);border-radius:50%;}
+.si{max-width:1080px;margin:0 auto;padding:70px 22px;}
+.slabel{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--goldd);text-transform:uppercase;margin-bottom:10px;}
+.stitle{font-family:'Cinzel',serif;font-size:clamp(22px,3.5vw,38px);font-weight:700;color:var(--white);margin-bottom:14px;line-height:1.2;}
+.stitle span{background:linear-gradient(135deg,var(--goldf),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sdesc{font-size:16px;color:rgba(240,232,216,.48);max-width:580px;line-height:1.7;margin-bottom:44px;}
+.stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;padding:40px 22px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:50px 0;}
+.stat .n{font-family:'Cinzel',serif;font-size:34px;font-weight:900;background:linear-gradient(135deg,var(--goldf),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.stat .l{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--goldd);text-transform:uppercase;margin-top:3px;text-align:center;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:18px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;transition:all .3s;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s;}
+.card:hover{border-color:rgba(212,168,67,.22);transform:translateY(-3px);box-shadow:0 10px 35px rgba(0,0,0,.4);}
+.card:hover::before{opacity:1;}
+.card-ico{width:42px;height:42px;background:rgba(212,168,67,.09);border:1px solid rgba(212,168,67,.18);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:14px;}
+.card h3{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:7px;}
+.card p{font-size:13px;color:rgba(240,232,216,.52);line-height:1.6;}
+.dl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;}
+.dlcard{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:all .3s;}
+.dlcard:hover{border-color:rgba(212,168,67,.28);transform:translateY(-3px);box-shadow:0 14px 45px rgba(0,0,0,.5);}
+.dlcard-h{padding:26px;background:linear-gradient(135deg,rgba(212,168,67,.05),transparent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;}
+.dlico{width:52px;height:52px;background:linear-gradient(135deg,var(--gold),var(--goldd));border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.dlcard-b{padding:22px;}
+.dlcard-b ul{list-style:none;margin:14px 0 22px;}
+.dlcard-b ul li{display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(240,232,216,.58);padding:4px 0;}
+.dlcard-b ul li::before{content:'✓';color:var(--green);font-weight:700;font-size:11px;}
+.vbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(34,208,132,.09);border:1px solid rgba(34,208,132,.2);border-radius:100px;font-size:11px;font-weight:600;color:var(--green);letter-spacing:1px;margin-bottom:7px;}
+.steps{max-width:780px;margin:0 auto;}
+.step{display:flex;gap:22px;margin-bottom:36px;position:relative;}
+.step::after{content:'';position:absolute;left:21px;top:46px;bottom:-36px;width:1px;background:linear-gradient(to bottom,var(--goldd),transparent);}
+.step:last-child::after{display:none;}
+.step-n{width:46px;height:46px;background:linear-gradient(135deg,var(--gold),var(--goldd));border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:#000;flex-shrink:0;position:relative;z-index:1;}
+.step-c{flex:1;background:var(--card);border:1px solid var(--border);border-radius:15px;padding:22px;}
+.step-c h3{font-family:'Cinzel',serif;font-size:14px;color:var(--gold);margin-bottom:7px;}
+.step-c p{font-size:13px;color:rgba(240,232,216,.58);line-height:1.7;}
+.tip{display:flex;gap:7px;margin-top:11px;padding:9px 13px;background:rgba(34,208,132,.05);border:1px solid rgba(34,208,132,.13);border-radius:9px;font-size:12px;color:rgba(34,208,132,.8);}
+.faq-item{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px 22px;margin-bottom:10px;cursor:pointer;transition:all .2s;}
+.faq-item:hover{border-color:rgba(212,168,67,.2);}
+.faq-q{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600;color:var(--white);}
+.faq-a{display:none;margin-top:11px;font-size:13px;color:rgba(240,232,216,.55);line-height:1.7;}
+.cgrid{display:grid;grid-template-columns:1fr 1.4fr;gap:36px;align-items:start;}
+@media(max-width:700px){.cgrid{grid-template-columns:1fr;}}
+.cinfo-item{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--border);}
+.c-ico{width:36px;height:36px;background:rgba(212,168,67,.07);border:1px solid rgba(212,168,67,.13);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.c-label{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--goldd);text-transform:uppercase;margin-bottom:2px;}
+.c-val{font-size:13px;color:rgba(240,232,216,.65);}
+.cform{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--goldd);text-transform:uppercase;margin-bottom:7px;}
+.fg input,.fg textarea,.fg select{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(212,168,67,.13);border-radius:9px;padding:11px 15px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.fg input:focus,.fg textarea:focus{border-color:var(--gold);}
+.fg textarea{resize:vertical;min-height:110px;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+footer{background:var(--card);border-top:1px solid var(--border);padding:36px 22px;text-align:center;}
+footer p{font-size:11px;color:rgba(240,232,216,.28);letter-spacing:1px;}
+footer a{color:var(--goldd);text-decoration:none;}
+.toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:13px 18px;font-size:13px;color:var(--white);z-index:9999;transform:translateY(16px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.4);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-left:3px solid var(--green);}
+.toast.err{border-left:3px solid var(--red);}
+
+/* EDIT BAR */
+#editBar{position:fixed;top:0;left:0;right:0;height:50px;background:linear-gradient(135deg,#1a1000,#2a1e00);border-bottom:2px solid var(--gold);display:none;align-items:center;gap:8px;padding:0 16px;z-index:2000;box-shadow:0 4px 20px rgba(212,168,67,.15);}
+#editBar.on{display:flex;}
+#editBar.on ~ #mainNav{top:50px;}
+.eb-logo{font-family:'Cinzel',serif;font-size:12px;color:var(--gold);letter-spacing:2px;margin-right:8px;white-space:nowrap;}
+.eb-sep{width:1px;height:26px;background:rgba(212,168,67,.2);margin:0 2px;}
+.eb-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.07);color:var(--gold);font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Rajdhani',sans-serif;}
+.eb-btn:hover,.eb-btn.active{background:rgba(212,168,67,.18);border-color:var(--gold);}
+.eb-close{margin-left:auto;padding:5px 13px;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.2);border-radius:6px;color:var(--red);font-size:10px;font-weight:600;cursor:pointer;letter-spacing:1px;font-family:'Rajdhani',sans-serif;}
+
+/* PANNEAU LATÉRAL */
+#editPanel{position:fixed;right:0;top:50px;bottom:0;width:300px;background:#0e0e0e;border-left:1px solid rgba(212,168,67,.15);z-index:1900;display:none;flex-direction:column;overflow:hidden;box-shadow:-8px 0 30px rgba(0,0,0,.5);}
+#editPanel.open{display:flex;}
+.ep-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;}
+.ep-tab{flex:1;min-width:50px;padding:11px 6px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.5px;color:rgba(240,232,216,.4);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;white-space:nowrap;}
+.ep-tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(212,168,67,.04);}
+.ep-body{flex:1;overflow-y:auto;padding:14px;}
+.ep-body::-webkit-scrollbar{width:3px;}
+.ep-body::-webkit-scrollbar-thumb{background:var(--goldd);}
+.ep-section{display:none;}
+.ep-section.active{display:block;}
+.ep-field{margin-bottom:14px;}
+.ep-field label{display:block;font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--goldd);text-transform:uppercase;margin-bottom:5px;}
+.ep-field input,.ep-field textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(212,168,67,.12);border-radius:7px;padding:8px 11px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:12px;outline:none;transition:border-color .2s;}
+.ep-field input:focus,.ep-field textarea:focus{border-color:var(--gold);}
+.ep-field textarea{resize:vertical;min-height:70px;}
+.ep-field input[type=color]{height:34px;padding:3px;cursor:pointer;border-radius:7px;}
+.ep-save{width:100%;background:linear-gradient(135deg,var(--gold),var(--goldd));color:#000;border:none;border-radius:8px;padding:10px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:all .2s;margin-top:6px;}
+.ep-save:hover{opacity:.9;}
+.ep-div{height:1px;background:var(--border);margin:14px 0;}
+.ep-lbl{font-family:'Cinzel',serif;font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:10px;}
+.csrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;}
+.csw{width:30px;height:30px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .2s;}
+.csw:hover,.csw.sel{border-color:var(--white);transform:scale(1.1);}
+.info-box{padding:11px;background:rgba(212,168,67,.04);border:1px solid rgba(212,168,67,.1);border-radius:8px;font-size:11px;color:rgba(240,232,216,.4);line-height:1.6;margin-bottom:12px;}
+
+/* MODE EDITION */
+body.edit-mode [data-edit]:hover{outline:2px dashed rgba(212,168,67,.6)!important;outline-offset:3px;cursor:text!important;}
+body.edit-mode [data-edit].editing{outline:2px solid var(--gold)!important;background:rgba(212,168,67,.04)!important;}
+
+/* MODALS */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-ov.open{opacity:1;pointer-events:all;}
+.modal{background:var(--card);border:1px solid rgba(212,168,67,.28);border-radius:20px;width:90%;max-width:400px;padding:32px;transform:translateY(16px);transition:transform .3s;}
+.modal-ov.open .modal{transform:translateY(0);}
+.modal h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);text-align:center;margin-bottom:5px;}
+.modal p{font-size:12px;color:rgba(240,232,216,.38);text-align:center;margin-bottom:22px;}
+</style>
+</head>
+<body>
+
+<!-- BARRE ÉDITEUR -->
+<div id="editBar">
+  <div class="eb-logo">✈ ÉDITION</div>
+  <div class="eb-sep"></div>
+  <div class="eb-btn" onclick="togglePanel('textes')" id="eb1">✏️ Textes</div>
+  <div class="eb-btn" onclick="togglePanel('couleurs')" id="eb2">🎨 Couleurs</div>
+  <div class="eb-btn" onclick="togglePanel('liens')" id="eb3">🔗 Fichiers</div>
+  <div class="eb-btn" onclick="togglePanel('ajouter')" id="eb4">➕ Ajouter</div>
+  <div class="eb-sep"></div>
+  <div class="eb-btn" onclick="toggleClickEdit()" id="ebClick">🖱 Clic-éditer</div>
+  <div class="eb-close" onclick="closeAdmin()">✕ Quitter</div>
+</div>
+
+<!-- PANNEAU LATÉRAL -->
+<div id="editPanel">
+  <div class="ep-tabs">
+    <div class="ep-tab active" onclick="epTab('textes',this)">Textes</div>
+    <div class="ep-tab" onclick="epTab('couleurs',this)">Couleurs</div>
+    <div class="ep-tab" onclick="epTab('liens',this)">Fichiers</div>
+    <div class="ep-tab" onclick="epTab('ajouter',this)">Ajouter</div>
+  </div>
+  <div class="ep-body">
+
+    <!-- TEXTES -->
+    <div class="ep-section active" id="ep-textes">
+      <div class="ep-lbl">Accueil</div>
+      <div class="ep-field"><label>Titre</label><input id="e_heroTitle" oninput="live('heroTitle',this.value)"></div>
+      <div class="ep-field"><label>Sous-titre</label><textarea id="e_heroSub" oninput="live('heroSub',this.value)" rows="3"></textarea></div>
+      <div class="ep-field"><label>Badge haut</label><input id="e_heroBadge" oninput="live('heroBadge',this.value)"></div>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">Statistiques</div>
+      <div class="ep-field"><label>Stat 1 chiffre</label><input id="e_s1n" oninput="live('stat1n',this.value)"></div>
+      <div class="ep-field"><label>Stat 1 label</label><input id="e_s1l" oninput="live('stat1l',this.value)"></div>
+      <div class="ep-field"><label>Stat 2 chiffre</label><input id="e_s2n" oninput="live('stat2n',this.value)"></div>
+      <div class="ep-field"><label>Stat 2 label</label><input id="e_s2l" oninput="live('stat2l',this.value)"></div>
+      <div class="ep-field"><label>Stat 3 chiffre</label><input id="e_s3n" oninput="live('stat3n',this.value)"></div>
+      <div class="ep-field"><label>Stat 3 label</label><input id="e_s3l" oninput="live('stat3l',this.value)"></div>
+      <div class="ep-field"><label>Stat 4 chiffre</label><input id="e_s4n" oninput="live('stat4n',this.value)"></div>
+      <div class="ep-field"><label>Stat 4 label</label><input id="e_s4l" oninput="live('stat4l',this.value)"></div>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">Contact</div>
+      <div class="ep-field"><label>Email affiché</label><input id="e_cemail" oninput="live('cemail',this.value)"></div>
+      <div class="ep-field"><label>Localisation</label><input id="e_cloc" oninput="live('cloc',this.value)"></div>
+      <div class="ep-field"><label>Horaires</label><input id="e_chours" oninput="live('chours',this.value)"></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER</button>
+    </div>
+
+    <!-- COULEURS -->
+    <div class="ep-section" id="ep-couleurs">
+      <div class="ep-lbl">Thèmes rapides</div>
+      <div class="csrow">
+        <div class="csw sel" style="background:#D4A843" onclick="theme('#D4A843','#8B6914','#F5D98B',this)" title="Or"></div>
+        <div class="csw" style="background:#4A9EFF" onclick="theme('#4A9EFF','#1A6ECC','#8AC8FF',this)" title="Bleu"></div>
+        <div class="csw" style="background:#22D084" onclick="theme('#22D084','#158A54','#7FFFC4',this)" title="Vert"></div>
+        <div class="csw" style="background:#FF6B6B" onclick="theme('#FF6B6B','#CC2222','#FFAAAA',this)" title="Rouge"></div>
+        <div class="csw" style="background:#A855F7" onclick="theme('#A855F7','#7C3AED','#D4AAFF',this)" title="Violet"></div>
+        <div class="csw" style="background:#F97316" onclick="theme('#F97316','#C45A0A','#FDC08A',this)" title="Orange"></div>
+        <div class="csw" style="background:#EC4899" onclick="theme('#EC4899','#A82070','#F9A8D4',this)" title="Rose"></div>
+        <div class="csw" style="background:#14B8A6" onclick="theme('#14B8A6','#0A7A70','#7FE8E0',this)" title="Teal"></div>
+      </div>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">Couleurs personnalisées</div>
+      <div class="ep-field"><label>Couleur principale</label><input type="color" id="e_cm" value="#D4A843" oninput="setColor('--gold',this.value)"></div>
+      <div class="ep-field"><label>Couleur sombre</label><input type="color" id="e_cd" value="#8B6914" oninput="setColor('--goldd',this.value)"></div>
+      <div class="ep-field"><label>Fond de page</label><input type="color" id="e_bg" value="#080808" oninput="setColor('--black',this.value)"></div>
+      <div class="ep-field"><label>Couleur cartes</label><input type="color" id="e_cc" value="#111111" oninput="setColor('--card',this.value)"></div>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">Logo & emoji</div>
+      <div class="ep-field"><label>Emoji navbar</label><input id="e_logoE" maxlength="4" oninput="live('navIco',this.value)"></div>
+      <div class="ep-field"><label>Image hero (URL imgur/imgbb)</label><input id="e_heroBg" placeholder="https://i.imgur.com/..." oninput="heroBg(this.value)"></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER</button>
+    </div>
+
+    <!-- FICHIERS -->
+    <div class="ep-section" id="ep-liens">
+      <div class="ep-lbl">Liens téléchargement</div>
+      <div class="info-box">💡 Hébergez vos fichiers sur <strong style="color:var(--goldd)">GitHub Releases</strong> (gratuit). Collez l'URL directe du fichier.</div>
+      <div class="ep-field"><label>URL Setup Windows (.exe)</label><input id="e_winUrl" placeholder="https://github.com/.../Setup.exe"></div>
+      <div class="ep-field"><label>URL APK Android (.apk)</label><input id="e_mobileUrl" placeholder="https://drive.google.com/..."></div>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">Formulaire contact</div>
+      <div class="ep-field"><label>Email réception messages</label><input id="e_formEmail" placeholder="alexander.lepennec@outlook.fr"></div>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">Réseaux sociaux (optionnel)</div>
+      <div class="ep-field"><label>Instagram</label><input id="e_ig" placeholder="https://instagram.com/..."></div>
+      <div class="ep-field"><label>Facebook</label><input id="e_fb" placeholder="https://facebook.com/..."></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER</button>
+    </div>
+
+    <!-- AJOUTER -->
+    <div class="ep-section" id="ep-ajouter">
+      <div class="ep-lbl">➕ Nouvelle carte fonctionnalité</div>
+      <div class="ep-field"><label>Emoji</label><input id="nCIco" placeholder="🚀" maxlength="4"></div>
+      <div class="ep-field"><label>Titre</label><input id="nCTitle" placeholder="Titre..."></div>
+      <div class="ep-field"><label>Description</label><textarea id="nCDesc" rows="3" placeholder="Description..."></textarea></div>
+      <button class="ep-save" onclick="addCard()">➕ AJOUTER</button>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">➕ Nouvelle étape tutoriel</div>
+      <div class="ep-field"><label>Titre</label><input id="nSTitle" placeholder="Titre étape..."></div>
+      <div class="ep-field"><label>Description</label><textarea id="nSDesc" rows="3" placeholder="Description..."></textarea></div>
+      <button class="ep-save" onclick="addStep()">➕ AJOUTER</button>
+      <div class="ep-div"></div>
+      <div class="ep-lbl">➕ Nouvelle FAQ</div>
+      <div class="ep-field"><label>Question</label><input id="nFQ" placeholder="La question..."></div>
+      <div class="ep-field"><label>Réponse</label><textarea id="nFA" rows="3" placeholder="La réponse..."></textarea></div>
+      <button class="ep-save" onclick="addFaq()">➕ AJOUTER</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-logo" onclick="go('home')">
+    <div class="ico" id="navIco">✈️</div>
+    <span>PILOT PHOTOBOOTH</span>
+  </div>
+  <div class="nav-links">
+    <a onclick="go('home')">Accueil</a>
+    <a onclick="go('download')">Télécharger</a>
+    <a onclick="go('tutorial')">Tutoriel</a>
+    <a onclick="go('contact')">Contact</a>
+    <a onclick="openModal('compteModal')" class="btn-s" style="padding:7px 13px;font-size:11px;">Mon compte</a>
+    <a onclick="openAdminLogin()" class="btn-gold">Admin</a>
+  </div>
+</nav>
+
+<!-- HOME -->
+<section id="home" class="active">
+  <div class="hero-grid"></div>
+  <div style="position:relative;z-index:1;padding:0 22px;max-width:860px;margin:0 auto;">
+    <div class="badge" id="heroBadge" data-edit="heroBadge">✈ Tour de contrôle photobooth — v11.0</div>
+    <h1 class="hero-h1"><span class="grad-text" id="heroTitle" data-edit="heroTitle">Pilotez vos photobooths</span><br><span style="color:rgba(240,232,216,.65);font-size:.62em;">depuis votre smartphone</span></h1>
+    <p class="hero-sub" id="heroSub" data-edit="heroSub">Pilot Photobooth connecte votre borne Windows à votre téléphone. Surveillez, contrôlez et analysez vos événements en temps réel.</p>
+    <div class="hero-btns">
+      <button class="btn-p" onclick="go('download')">⬇ Télécharger</button>
+      <button class="btn-s" onclick="go('tutorial')">📖 Tutoriel</button>
+    </div>
+    <div class="feat-strip">
+      <div class="feat-item"><div class="dot"></div>Temps réel</div>
+      <div class="feat-item"><div class="dot"></div>Contrôle à distance</div>
+      <div class="feat-item"><div class="dot"></div>Galerie photos</div>
+      <div class="feat-item"><div class="dot"></div>Alertes imprimante</div>
+      <div class="feat-item"><div class="dot"></div>Multi-bornes</div>
+    </div>
+  </div>
+  <div class="stats" id="statsSection" style="width:100%;margin-top:70px;">
+    <div class="stat"><div class="n" id="stat1n" data-edit="stat1n">100%</div><div class="l" id="stat1l" data-edit="stat1l">Temps réel</div></div>
+    <div class="stat"><div class="n" id="stat2n" data-edit="stat2n">∞</div><div class="l" id="stat2l" data-edit="stat2l">Événements</div></div>
+    <div class="stat"><div class="n" id="stat3n" data-edit="stat3n">iOS & Android</div><div class="l" id="stat3l" data-edit="stat3l">Applications</div></div>
+    <div class="stat"><div class="n" id="stat4n" data-edit="stat4n">24/7</div><div class="l" id="stat4l" data-edit="stat4l">Surveillance</div></div>
+  </div>
+  <div class="si" style="padding-top:24px;">
+    <div style="text-align:center;margin-bottom:44px;">
+      <div class="slabel">Fonctionnalités</div>
+      <h2 class="stitle">Tout ce dont vous avez besoin pour <span>gérer vos bornes</span></h2>
+    </div>
+    <div class="grid" id="featuresGrid">
+      <div class="card"><div class="card-ico">📡</div><h3>Surveillance temps réel</h3><p>CPU, RAM, disque, imprimante — synchronisé toutes les 20 secondes depuis votre mobile.</p></div>
+      <div class="card"><div class="card-ico">📸</div><h3>Galerie photos</h3><p>Accédez à toutes les photos de vos événements. Téléchargez, partagez ou supprimez depuis l'app.</p></div>
+      <div class="card"><div class="card-ico">🖨️</div><h3>Alertes imprimante</h3><p>Papier, ruban, déconnexion — alertes instantanées sur votre téléphone.</p></div>
+      <div class="card"><div class="card-ico">📅</div><h3>Gestion d'événements</h3><p>Planifiez vos événements, gérez les devis PDF et les informations clients.</p></div>
+      <div class="card"><div class="card-ico">🎨</div><h3>Templates à distance</h3><p>Envoyez de nouveaux templates graphiques sur votre borne depuis votre mobile.</p></div>
+      <div class="card"><div class="card-ico">📊</div><h3>Statistiques</h3><p>Photos, impressions, statistiques horaires et historique complet de vos événements.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="si">
+    <div class="slabel">Téléchargements</div>
+    <h2 class="stitle">Télécharger <span>Pilot Photobooth</span></h2>
+    <p class="sdesc">Logiciel Windows et application mobile pour piloter vos photobooths depuis n'importe où.</p>
+    <div class="dl-grid">
+      <div class="dlcard">
+        <div class="dlcard-h"><div class="dlico">🖥️</div><div><div class="vbadge">● v11.0.0 — STABLE</div><div style="font-family:'Cinzel',serif;font-size:16px;color:var(--gold);font-weight:700;">Logiciel Windows</div></div></div>
+        <div class="dlcard-b">
+          <ul><li>Windows 10 & 11 (64-bit)</li><li>Surveillance temps réel</li><li>Upload automatique des photos</li><li>Connexion Google ou email</li><li>Hot Folder Print intégré</li></ul>
+          <a id="winDlBtn" href="#" class="btn-p" style="width:100%;justify-content:center;" onclick="dl('win',event)">⬇ Télécharger Setup.exe</a>
+          <div style="text-align:center;margin-top:9px;font-size:11px;color:rgba(240,232,216,.28);">~700 MB · Windows 10/11 · 64-bit</div>
+        </div>
+      </div>
+      <div class="dlcard">
+        <div class="dlcard-h"><div class="dlico">📱</div><div><div class="vbadge">● v1.0 — DISPONIBLE</div><div style="font-family:'Cinzel',serif;font-size:16px;color:var(--gold);font-weight:700;">Application Mobile</div></div></div>
+        <div class="dlcard-b">
+          <ul><li>Android 8.0+</li><li>Tableau de bord temps réel</li><li>Galerie photos événements</li><li>Contrôle à distance complet</li><li>Notifications push</li></ul>
+          <a id="mobileDlBtn" href="#" class="btn-p" style="width:100%;justify-content:center;" onclick="dl('mobile',event)">⬇ Télécharger APK Android</a>
+          <div style="text-align:center;margin-top:9px;font-size:11px;color:rgba(240,232,216,.28);">~85 MB · Android 8.0+</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TUTORIAL -->
+<section id="tutorial">
+  <div class="si">
+    <div class="slabel">Guide d'installation</div>
+    <h2 class="stitle">Démarrer en <span>5 minutes</span></h2>
+    <p class="sdesc">Suivez ces étapes pour connecter votre photobooth à l'application mobile.</p>
+    <div class="steps" id="tutorialSteps">
+      <div class="step"><div class="step-n">1</div><div class="step-c"><h3>Créer votre compte</h3><p>Téléchargez l'app et créez votre compte avec votre email. Utilisez les mêmes identifiants que le logiciel PC.</p><div class="tip">💡 Google Sign-In disponible pour une connexion rapide.</div></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-c"><h3>Choisir votre abonnement</h3><p>Mensuel (25€/mois) ou annuel (250€/an). Bornes supplémentaires à 6€/mois.</p></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-c"><h3>Installer le logiciel PC</h3><p>Installez Setup_PilotPhotobooth_v11.0.exe sur le PC de votre borne photobooth. Droits administrateur requis.</p><div class="tip">💡 Le logiciel démarre automatiquement avec Windows.</div></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-c"><h3>Configurer</h3><p>Connectez-vous, nommez votre borne (ex: BOOTH_01), sélectionnez votre imprimante et le dossier photos de dslrBooth.</p></div></div>
+      <div class="step"><div class="step-n">5</div><div class="step-c"><h3>C'est prêt !</h3><p>Votre borne apparaît dans l'app en 30 secondes. Statut vert = EN LIGNE. Pilotez depuis n'importe où !</p><div class="tip">✅ Tout est synchronisé automatiquement.</div></div></div>
+    </div>
+    <div style="margin-top:50px;">
+      <div style="font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin-bottom:20px;letter-spacing:1px;">Questions fréquentes</div>
+      <div id="faqList">
+        <div class="faq-item" onclick="faq(this)"><div class="faq-q"><span>Compatible macOS ?</span><span>+</span></div><div class="faq-a">Non, Windows 10/11 uniquement pour le logiciel. L'app mobile est disponible Android et iOS.</div></div>
+        <div class="faq-item" onclick="faq(this)"><div class="faq-q"><span>Quel logiciel photo compatible ?</span><span>+</span></div><div class="faq-a">dslrBooth, Sparkbooth, Breeze — tout logiciel qui enregistre en JPG/PNG dans un dossier Windows.</div></div>
+        <div class="faq-item" onclick="faq(this)"><div class="faq-q"><span>Plusieurs bornes possibles ?</span><span>+</span></div><div class="faq-a">Oui ! Chaque borne supplémentaire = 6€/mois ou 72€/an. Toutes visibles dans la même application.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="si">
+    <div class="slabel">Contact</div>
+    <h2 class="stitle">Une question ? <span>Parlons-en</span></h2>
+    <p class="sdesc">Réponse garantie sous 24h ouvrées.</p>
+    <div class="cgrid">
+      <div>
+        <div class="cinfo-item"><div class="c-ico">✉️</div><div><div class="c-label">Email</div><div class="c-val" id="cemail" data-edit="cemail">Via formulaire uniquement</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">📍</div><div><div class="c-label">Localisation</div><div class="c-val" id="cloc" data-edit="cloc">France</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">⏰</div><div><div class="c-label">Disponibilité</div><div class="c-val" id="chours" data-edit="chours">Lun–Ven, 9h–18h</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">⚡</div><div><div class="c-label">Réponse</div><div class="c-val">Sous 24h ouvrées</div></div></div>
+      </div>
+      <div class="cform">
+        <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin-bottom:20px;letter-spacing:1px;">ENVOYER UN MESSAGE</div>
+        <form onsubmit="sendForm(event)">
+          <div class="r2"><div class="fg"><label>Prénom</label><input placeholder="Jean" required></div><div class="fg"><label>Nom</label><input placeholder="Dupont" required></div></div>
+          <div class="fg"><label>Email</label><input type="email" placeholder="jean@exemple.fr" required></div>
+          <div class="fg"><label>Sujet</label><select style="background:rgba(255,255,255,.03);border:1px solid rgba(212,168,67,.13);border-radius:9px;padding:11px 15px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:13px;width:100%;outline:none;"><option>Support technique</option><option>Question abonnement</option><option>Demande de démo</option><option>Autre</option></select></div>
+          <div class="fg"><label>Message</label><textarea placeholder="Votre message..." required></textarea></div>
+          <button type="submit" class="btn-p" style="width:100%;justify-content:center;">✈ Envoyer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer><div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin-bottom:8px;letter-spacing:2px;">PILOT PHOTOBOOTH</div><p>© 2026 Pilot Photobooth · Tous droits réservés · <a href="#">CGU</a> · <a href="#">Mentions légales</a></p></footer>
+
+<!-- MODAL ADMIN -->
+<div class="modal-ov" id="adminModal">
+  <div class="modal">
+    <div style="text-align:center;font-size:34px;margin-bottom:14px;">🔐</div>
+    <h2>Administrateur</h2>
+    <p>Réservé à alexander.lepennec@outlook.fr</p>
+    <div class="fg"><label>Email</label><input type="email" id="aEmail"></div>
+    <div class="fg"><label>Mot de passe</label><input type="password" id="aPwd" onkeydown="if(event.key==='Enter')checkAdmin()"></div>
+    <div id="aErr" style="color:var(--red);font-size:11px;margin-bottom:10px;display:none;">Identifiants incorrects.</div>
+    <button class="btn-p" style="width:100%;justify-content:center;margin-bottom:9px;" onclick="checkAdmin()">Connexion</button>
+    <button class="btn-s" style="width:100%;justify-content:center;" onclick="closeModal('adminModal')">Annuler</button>
+  </div>
+</div>
+
+<!-- MODAL COMPTE -->
+<div class="modal-ov" id="compteModal">
+  <div class="modal">
+    <div style="text-align:center;font-size:32px;margin-bottom:14px;">👤</div>
+    <h2>Mon Compte</h2>
+    <p>Accédez à vos téléchargements</p>
+    <div id="loginForm">
+      <div class="fg"><label>Email</label><input type="email" id="uEmail"></div>
+      <div class="fg"><label>Mot de passe</label><input type="password" id="uPwd"></div>
+      <button class="btn-p" style="width:100%;justify-content:center;margin-bottom:9px;" onclick="userLogin()">Se connecter</button>
+      <button class="btn-s" style="width:100%;justify-content:center;" onclick="showReg()">Créer un compte</button>
+    </div>
+    <div id="regForm" style="display:none;">
+      <div class="fg"><label>Prénom</label><input id="rPrenom"></div>
+      <div class="fg"><label>Email</label><input type="email" id="rEmail"></div>
+      <div class="fg"><label>Mot de passe</label><input type="password" id="rPwd"></div>
+      <button class="btn-p" style="width:100%;justify-content:center;margin-bottom:9px;" onclick="userRegister()">Créer mon compte</button>
+      <button class="btn-s" style="width:100%;justify-content:center;" onclick="showLogin()">Déjà un compte</button>
+    </div>
+    <button onclick="closeModal('compteModal')" style="width:100%;background:none;border:none;color:rgba(240,232,216,.25);font-size:11px;cursor:pointer;margin-top:12px;font-family:'Rajdhani',sans-serif;">Fermer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_EMAIL='alexander.lepennec@outlook.fr', ADMIN_PWD='PilotAdmin2026!', SK='pilotSite';
+function load(){try{return JSON.parse(localStorage.getItem(SK))||{};}catch{return{};}}
+function save(d){const c=load();Object.assign(c,d);localStorage.setItem(SK,JSON.stringify(c));}
+function go(id){document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));const el=document.getElementById(id);if(el)el.classList.add('active');window.scrollTo(0,0);}
+function faq(el){const a=el.querySelector('.faq-a'),s=el.querySelector('.faq-q span:last-child'),o=a.style.display==='block';a.style.display=o?'none':'block';s.textContent=o?'+':'−';}
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=(type==='ok'?'✅ ':'❌ ')+msg;t.className='toast show '+type;setTimeout(()=>t.classList.remove('show'),3500);}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{['adminModal','compteModal'].forEach(id=>{const el=document.getElementById(id);if(e.target===el)el.classList.remove('open');});});
+function openAdminLogin(){openModal('adminModal');setTimeout(()=>document.getElementById('aEmail').focus(),300);}
+function checkAdmin(){const e=document.getElementById('aEmail').value.trim(),p=document.getElementById('aPwd').value;if(e===ADMIN_EMAIL&&p===ADMIN_PWD){closeModal('adminModal');enterAdmin();}else{document.getElementById('aErr').style.display='block';document.getElementById('aPwd').value='';}}
+function showReg(){document.getElementById('loginForm').style.display='none';document.getElementById('regForm').style.display='block';}
+function showLogin(){document.getElementById('regForm').style.display='none';document.getElementById('loginForm').style.display='block';}
+function userLogin(){const users=JSON.parse(localStorage.getItem('pilotUsers')||'[]'),u=users.find(u=>u.email===document.getElementById('uEmail').value&&u.pwd===document.getElementById('uPwd').value);if(u){closeModal('compteModal');toast('Bienvenue '+u.prenom+' !');}else toast('Identifiants incorrects','err');}
+function userRegister(){const p=document.getElementById('rPrenom').value.trim(),e=document.getElementById('rEmail').value.trim(),pw=document.getElementById('rPwd').value;if(!p||!e||!pw){toast('Remplissez tous les champs','err');return;}const users=JSON.parse(localStorage.getItem('pilotUsers')||'[]');if(users.find(u=>u.email===e)){toast('Email déjà utilisé','err');return;}users.push({prenom:p,email:e,pwd:pw});localStorage.setItem('pilotUsers',JSON.stringify(users));closeModal('compteModal');toast('Compte créé ! Bienvenue '+p+' 👋');}
+function dl(type,e){const d=load(),url=type==='win'?d.winUrl:d.mobileUrl;if(!url||url==='#'||!url.trim()){e.preventDefault();toast('Lien non configuré — connectez-vous en admin','err');return;}toast('Téléchargement démarré !');}
+function sendForm(e){e.preventDefault();toast('Message envoyé ! Réponse sous 24h ✈');e.target.reset();}
+
+// ADMIN
+let clickEdit=false;
+function enterAdmin(){document.getElementById('editBar').classList.add('on');document.getElementById('mainNav').style.top='50px';loadFields();toast('Mode édition activé !');}
+function closeAdmin(){clickEdit=false;document.body.classList.remove('edit-mode');document.getElementById('editBar').classList.remove('on');document.getElementById('editPanel').classList.remove('open');document.getElementById('mainNav').style.top='0';document.getElementById('ebClick').classList.remove('active');applyAll();}
+
+// PANNEAU
+const ebIds={textes:'eb1',couleurs:'eb2',liens:'eb3',ajouter:'eb4'};
+function togglePanel(tab){const panel=document.getElementById('editPanel');const btn=document.getElementById(ebIds[tab]);const same=panel.classList.contains('open')&&btn.classList.contains('active');if(same){panel.classList.remove('open');Object.values(ebIds).forEach(id=>document.getElementById(id).classList.remove('active'));return;}panel.classList.add('open');Object.values(ebIds).forEach(id=>document.getElementById(id).classList.remove('active'));btn.classList.add('active');epTab(tab,null);}
+function epTab(name,el){document.querySelectorAll('.ep-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.ep-tab').forEach(t=>t.classList.remove('active'));const sec=document.getElementById('ep-'+name);if(sec)sec.classList.add('active');if(el)el.classList.add('active');}
+
+// CLICK-EDIT
+function toggleClickEdit(){clickEdit=!clickEdit;document.body.classList.toggle('edit-mode',clickEdit);document.getElementById('ebClick').classList.toggle('active',clickEdit);if(clickEdit)toast('Cliquez sur n\'importe quel texte pour l\'éditer !');}
+document.addEventListener('click',e=>{if(!clickEdit)return;const el=e.target.closest('[data-edit]');if(!el)return;e.preventDefault();el.contentEditable='true';el.classList.add('editing');el.focus();el.addEventListener('blur',()=>{el.contentEditable='false';el.classList.remove('editing');save({[el.dataset.edit]:el.textContent});toast('Modifié !');},{once:true});});
+
+// LIVE UPDATE
+function live(key,val){const el=document.getElementById(key);if(el)el.textContent=val;}
+function setColor(varName,val){document.documentElement.style.setProperty(varName,val);}
+function heroBg(url){const h=document.getElementById('home');if(url&&url.startsWith('http')){h.style.backgroundImage=`url('${url}')`;h.style.backgroundSize='cover';h.style.backgroundPosition='center';}else{h.style.backgroundImage='';}}
+
+function theme(m,d,l,sw){document.documentElement.style.setProperty('--gold',m);document.documentElement.style.setProperty('--goldd',d);document.documentElement.style.setProperty('--goldf',l);document.querySelectorAll('.csw').forEach(s=>s.classList.remove('sel'));sw.classList.add('sel');document.getElementById('e_cm').value=m;document.getElementById('e_cd').value=d;save({colorMain:m,colorDark:d,colorLight:l});toast('Thème appliqué !');}
+
+// AJOUTER ÉLÉMENTS
+function addCard(){const i=document.getElementById('nCIco').value||'⭐',t=document.getElementById('nCTitle').value,d=document.getElementById('nCDesc').value;if(!t||!d){toast('Remplissez titre et description','err');return;}const g=document.getElementById('featuresGrid');const c=document.createElement('div');c.className='card';c.innerHTML=`<div class="card-ico">${i}</div><h3>${t}</h3><p>${d}</p>`;g.appendChild(c);document.getElementById('nCIco').value='';document.getElementById('nCTitle').value='';document.getElementById('nCDesc').value='';saveElems();toast('Carte ajoutée !');}
+function addStep(){const t=document.getElementById('nSTitle').value,d=document.getElementById('nSDesc').value;if(!t||!d){toast('Remplissez tous les champs','err');return;}const s=document.getElementById('tutorialSteps');const n=s.querySelectorAll('.step').length+1;const div=document.createElement('div');div.className='step';div.innerHTML=`<div class="step-n">${n}</div><div class="step-c"><h3>${t}</h3><p>${d}</p></div>`;s.appendChild(div);document.getElementById('nSTitle').value='';document.getElementById('nSDesc').value='';saveElems();toast('Étape ajoutée !');}
+function addFaq(){const q=document.getElementById('nFQ').value,a=document.getElementById('nFA').value;if(!q||!a){toast('Remplissez question et réponse','err');return;}const l=document.getElementById('faqList');const div=document.createElement('div');div.className='faq-item';div.setAttribute('onclick','faq(this)');div.innerHTML=`<div class="faq-q"><span>${q}</span><span>+</span></div><div class="faq-a">${a}</div>`;l.appendChild(div);document.getElementById('nFQ').value='';document.getElementById('nFA').value='';saveElems();toast('FAQ ajoutée !');}
+function saveElems(){save({featHTML:document.getElementById('featuresGrid').innerHTML,stepsHTML:document.getElementById('tutorialSteps').innerHTML,faqHTML:document.getElementById('faqList').innerHTML});}
+
+// SAVE ALL
+function saveAll(){const fields={e_heroTitle:'heroTitle',e_heroSub:'heroSub',e_heroBadge:'heroBadge',e_s1n:'stat1n',e_s1l:'stat1l',e_s2n:'stat2n',e_s2l:'stat2l',e_s3n:'stat3n',e_s3l:'stat3l',e_s4n:'stat4n',e_s4l:'stat4l',e_cemail:'cemail',e_cloc:'cloc',e_chours:'chours',e_winUrl:'winUrl',e_mobileUrl:'mobileUrl',e_formEmail:'formEmail',e_ig:'instagram',e_fb:'facebook',e_logoE:'logoEmoji',e_heroBg:'heroBg',e_cm:'colorMain',e_cd:'colorDark',e_bg:'colorBg',e_cc:'colorCard'};const data={};Object.entries(fields).forEach(([iid,key])=>{const el=document.getElementById(iid);if(el)data[key]=el.value;});save(data);applyAll();saveElems();toast('Tout sauvegardé !');}
+
+// LOAD FIELDS
+function loadFields(){const d=load();const m={e_heroTitle:'heroTitle',e_heroSub:'heroSub',e_heroBadge:'heroBadge',e_s1n:'stat1n',e_s1l:'stat1l',e_s2n:'stat2n',e_s2l:'stat2l',e_s3n:'stat3n',e_s3l:'stat3l',e_s4n:'stat4n',e_s4l:'stat4l',e_cemail:'cemail',e_cloc:'cloc',e_chours:'chours',e_winUrl:'winUrl',e_mobileUrl:'mobileUrl',e_formEmail:'formEmail',e_ig:'instagram',e_fb:'facebook',e_logoE:'logoEmoji',e_heroBg:'heroBg'};Object.entries(m).forEach(([iid,key])=>{const el=document.getElementById(iid);if(el&&d[key])el.value=d[key];});}
+
+// APPLY ALL
+function applyAll(){const d=load();const st=(id,v)=>{const e=document.getElementById(id);if(e&&v)e.textContent=v;};st('heroTitle',d.heroTitle);st('heroSub',d.heroSub);st('heroBadge',d.heroBadge);st('stat1n',d.stat1n);st('stat1l',d.stat1l);st('stat2n',d.stat2n);st('stat2l',d.stat2l);st('stat3n',d.stat3n);st('stat3l',d.stat3l);st('stat4n',d.stat4n);st('stat4l',d.stat4l);st('cemail',d.cemail);st('cloc',d.cloc);st('chours',d.chours);st('navIco',d.logoEmoji);
+if(d.winUrl){const b=document.getElementById('winDlBtn');if(b)b.href=d.winUrl;}
+if(d.mobileUrl){const b=document.getElementById('mobileDlBtn');if(b)b.href=d.mobileUrl;}
+if(d.colorMain){document.documentElement.style.setProperty('--gold',d.colorMain);document.documentElement.style.setProperty('--goldd',d.colorDark||'#8B6914');document.documentElement.style.setProperty('--goldf',d.colorLight||'#F5D98B');}
+if(d.colorBg)document.documentElement.style.setProperty('--black',d.colorBg);
+if(d.colorCard)document.documentElement.style.setProperty('--card',d.colorCard);
+if(d.heroBg)heroBg(d.heroBg);
+if(d.featHTML)document.getElementById('featuresGrid').innerHTML=d.featHTML;
+if(d.stepsHTML)document.getElementById('tutorialSteps').innerHTML=d.stepsHTML;
+if(d.faqHTML)document.getElementById('faqList').innerHTML=d.faqHTML;}
+
+// RACCOURCI
+document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key==='A')openAdminLogin();});
+window.addEventListener('load',()=>applyAll());
+</script>
+</body>
+</html>
