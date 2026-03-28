@@ -287,6 +287,35 @@ footer a{color:var(--goldd);text-decoration:none;}
 .layout-btn{flex:1;padding:6px 4px;background:#111;border:1px solid #333;border-radius:6px;color:#888;font-size:10px;cursor:pointer;text-align:center;transition:all .2s;}
 .layout-btn:hover,.layout-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,67,.08);}
 
+/* Mode clic-éditer */
+body.click-edit-mode [data-editable]:hover {
+  outline: 2px dashed rgba(212,168,67,.6) !important;
+  outline-offset: 3px;
+  cursor: text !important;
+  border-radius: 4px;
+}
+body.click-edit-mode [data-editable]:focus {
+  outline: 2px solid var(--gold) !important;
+  background: rgba(212,168,67,.04) !important;
+  border-radius: 4px;
+}
+/* Bouton supprimer en mode édition */
+body.edit-active .card {
+  position: relative;
+}
+body.edit-active .card:hover::after {
+  content: '✕';
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 24px; height: 24px;
+  background: rgba(255,68,68,.8);
+  color: white;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 10;
+}
 /* Admin login */
 #adminLogin{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);z-index:9999;align-items:center;justify-content:center;}
 #adminLogin.show{display:flex;}
@@ -330,6 +359,7 @@ footer a{color:var(--goldd);text-decoration:none;}
   <div class="eb-btn" onclick="undoEdit()" title="Ctrl+Z">↩</div>
   <div class="eb-btn" onclick="redoEdit()" title="Ctrl+Y">↪</div>
   <div class="eb-btn" onclick="toggleFloat()" title="Déplacer la barre">⤢</div>
+  <div class="eb-btn" onclick="toggleClickEdit()" id="ebClick" title="Cliquer pour éditer les textes">🖱 Clic-éditer</div>
   <div class="eb-close" onclick="closeEditor()">✕</div>
 </div>
 
@@ -506,9 +536,9 @@ footer a{color:var(--goldd);text-decoration:none;}
 <section id="home" class="active">
   <div class="hero-grid"></div>
   <div style="position:relative;z-index:1;padding:0 22px;max-width:860px;margin:0 auto;">
-    <div class="badge" id="heroBadge">✈ Tour de contrôle photobooth — v11.0</div>
-    <h1 class="hero-h1"><span class="grad-text" id="heroTitle">Pilotez vos photobooths</span><br><span style="color:rgba(240,232,216,.65);font-size:.62em;">depuis votre smartphone</span></h1>
-    <p class="hero-sub" id="heroSub">Pilot Photobooth connecte votre borne Windows à votre téléphone. Surveillez, contrôlez et analysez en temps réel.</p>
+    <div class="badge" id="heroBadge" data-editable="heroBadge">✈ Tour de contrôle photobooth — v11.0</div>
+    <h1 class="hero-h1"><span class="grad-text" id="heroTitle" data-editable="heroTitle">Pilotez vos photobooths</span><br><span style="color:rgba(240,232,216,.65);font-size:.62em;">depuis votre smartphone</span></h1>
+    <p class="hero-sub" id="heroSub" data-editable="heroSub">Pilot Photobooth connecte votre borne Windows à votre téléphone. Surveillez, contrôlez et analysez en temps réel.</p>
     <div class="hero-btns">
       <button class="btn-p" onclick="go('download')">⬇ Télécharger</button>
       <button class="btn-s" onclick="go('tutorial')">📖 Tutoriel</button>
@@ -522,10 +552,10 @@ footer a{color:var(--goldd);text-decoration:none;}
     </div>
   </div>
   <div class="stats" style="width:100%;margin-top:70px;">
-    <div class="stat"><div class="n" id="stat1n">100%</div><div class="l" id="stat1l">Temps réel</div></div>
-    <div class="stat"><div class="n" id="stat2n">∞</div><div class="l" id="stat2l">Événements</div></div>
-    <div class="stat"><div class="n" id="stat3n">iOS & Android</div><div class="l" id="stat3l">Applications</div></div>
-    <div class="stat"><div class="n" id="stat4n">24/7</div><div class="l" id="stat4l">Surveillance</div></div>
+    <div class="stat"><div class="n" id="stat1n" data-editable="stat1n">100%</div><div class="l" id="stat1l" data-editable="stat1l">Temps réel</div></div>
+    <div class="stat"><div class="n" id="stat2n" data-editable="stat2n">∞</div><div class="l" id="stat2l" data-editable="stat2l">Événements</div></div>
+    <div class="stat"><div class="n" id="stat3n" data-editable="stat3n">iOS & Android</div><div class="l" id="stat3l" data-editable="stat3l">Applications</div></div>
+    <div class="stat"><div class="n" id="stat4n" data-editable="stat4n">24/7</div><div class="l" id="stat4l" data-editable="stat4l">Surveillance</div></div>
   </div>
   <div class="si" style="padding-top:24px;">
     <div style="text-align:center;margin-bottom:44px;">
@@ -614,9 +644,9 @@ footer a{color:var(--goldd);text-decoration:none;}
     <p class="sdesc">Réponse garantie sous 24h ouvrées.</p>
     <div class="cgrid">
       <div>
-        <div class="cinfo-item"><div class="c-ico">✉️</div><div><div class="c-label">Email</div><div class="c-val" id="cemail">Via formulaire</div></div></div>
-        <div class="cinfo-item"><div class="c-ico">📍</div><div><div class="c-label">Localisation</div><div class="c-val" id="cloc">France</div></div></div>
-        <div class="cinfo-item"><div class="c-ico">⏰</div><div><div class="c-label">Disponibilité</div><div class="c-val" id="chours">Lun–Ven, 9h–18h</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">✉️</div><div><div class="c-label">Email</div><div class="c-val" id="cemail" data-editable="cemail">Via formulaire</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">📍</div><div><div class="c-label">Localisation</div><div class="c-val" id="cloc" data-editable="cloc">France</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">⏰</div><div><div class="c-label">Disponibilité</div><div class="c-val" id="chours" data-editable="chours">Lun–Ven, 9h–18h</div></div></div>
         <div class="cinfo-item"><div class="c-ico">⚡</div><div><div class="c-label">Réponse</div><div class="c-val">Sous 24h ouvrées</div></div></div>
         <div style="margin-top:20px;display:flex;gap:10px;">
           <a id="fbContact" href="#" class="social-btn" target="_blank" style="width:40px;height:40px;font-size:18px;">f</a>
@@ -688,6 +718,7 @@ footer a{color:var(--goldd);text-decoration:none;}
 // ══ CONFIG ══════════════════════════════════════════════════
 const ADMIN_EMAIL = 'alexander.lepennec@outlook.fr';
 const ADMIN_PWD   = 'PilotAdmin2026!';
+// ⚠️ À REMPLACER avec tes vraies clés EmailJS :
 const EJS_PUBLIC  = 'Z2D_cEmNRcexxJzWx';
 const EJS_SERVICE = 'service_8udpe0d';
 const EJS_TEMPLATE = 'template_zjf4ufe';
@@ -751,9 +782,11 @@ async function sendContactForm(e) {
   const data = {
     from_name:  form.prenom.value + ' ' + form.nom.value,
     from_email: form.email.value,
+    reply_to:   form.email.value,
     sujet:      form.sujet.value,
     message:    form.message.value,
-    to_email:   'alexander.lepennec@outlook.fr'
+    to_email:   'alexander.lepennec@outlook.fr',
+    to_name:    'Alexander Le Pennec'
   };
 
   try {
@@ -840,10 +873,40 @@ function startEditor() {
   initDrag();
 }
 
+function toggleClickEdit() {
+  const isOn = document.body.classList.toggle('click-edit-mode');
+  document.getElementById('ebClick').classList.toggle('active', isOn);
+
+  if (isOn) {
+    window.toast('Cliquez sur n'importe quel texte pour le modifier !');
+    // Rendre tous les éléments avec data-editable éditables
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.contentEditable = 'true';
+      el.addEventListener('blur', saveOnBlur, { once: false });
+    });
+  } else {
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.contentEditable = 'false';
+      el.removeEventListener('blur', saveOnBlur);
+    });
+  }
+}
+
+function saveOnBlur() {
+  // Auto-sauvegarde après modification directe
+  const key = this.dataset.editable;
+  if (key) {
+    window.saveToFirebase({ [key]: this.innerHTML });
+    window.toast('Modifié et sauvegardé !');
+  }
+}
+
 function closeEditor() {
   document.getElementById('editBar').classList.remove('on');
   document.getElementById('editPanel').classList.remove('open');
   document.body.classList.remove('edit-active');
+  document.body.classList.remove('click-edit-mode');
+  document.querySelectorAll('[data-editable]').forEach(el => { el.contentEditable='false'; });
   window.toast('Éditeur fermé');
 }
 
