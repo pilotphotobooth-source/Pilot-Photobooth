@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pilot Photobooth</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -19,7 +20,7 @@ const firebaseConfig = {
   projectId: "lploc-saas",
   storageBucket: "lploc-saas.firebasestorage.app",
   messagingSenderId: "88258729762",
-  appId: "1:88258729762:web:pilot-site"
+  appId: "1:88258729762:web:pilot"
 };
 
 const app  = initializeApp(firebaseConfig);
@@ -27,157 +28,67 @@ const db   = getFirestore(app);
 const stor = getStorage(app);
 const auth = getAuth(app);
 
-// ── Charger config site depuis Firestore ──────────────────────
-async function loadSiteConfig() {
-  try {
-    const snap = await getDoc(doc(db, 'site_config', 'main'));
-    if (snap.exists()) {
-      applySiteData(snap.data());
-    }
-  } catch(e) {
-    console.log('Config non trouvée, valeurs par défaut utilisées');
-  }
-}
+// ── Écoute temps réel ─────────────────────────────────────────
+onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
+  if (snap.exists()) window.applySiteData(snap.data());
+});
 
-// Écoute temps réel — tous les visiteurs voient les mises à jour
-function listenSiteConfig() {
-  onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
-    if (snap.exists()) applySiteData(snap.data());
-  });
-}
-
-// ── Appliquer les données du site ─────────────────────────────
-function applySiteData(d) {
-  const st = (id, v) => { const e = document.getElementById(id); if (e && v) e.textContent = v; };
-  const si = (id, v) => { const e = document.getElementById(id); if (e && v) e.src = v; };
-  
-  st('heroTitle',   d.heroTitle);
-  st('heroSub',     d.heroSub);
-  st('heroBadge',   d.heroBadge);
-  st('stat1n', d.stat1n); st('stat1l', d.stat1l);
-  st('stat2n', d.stat2n); st('stat2l', d.stat2l);
-  st('stat3n', d.stat3n); st('stat3l', d.stat3l);
-  st('stat4n', d.stat4n); st('stat4l', d.stat4l);
-  st('cemail', d.cemail); st('cloc', d.cloc); st('chours', d.chours);
-
-  if (d.logoUrl) {
-    const logo = document.getElementById('navLogo');
-    if (logo) { logo.src = d.logoUrl; logo.style.display = 'block'; document.getElementById('navIco').style.display = 'none'; }
-  }
-  if (d.logoEmoji) { const e = document.getElementById('navIco'); if(e) e.textContent = d.logoEmoji; }
-  if (d.winUrl)    { const b = document.getElementById('winDlBtn');    if(b) b.href = d.winUrl; }
-  if (d.mobileUrl) { const b = document.getElementById('mobileDlBtn'); if(b) b.href = d.mobileUrl; }
-  if (d.facebook)  { const b = document.getElementById('fbLink');   if(b){b.href=d.facebook; b.style.display='inline-flex';} }
-  if (d.instagram) { const b = document.getElementById('igLink');   if(b){b.href=d.instagram; b.style.display='inline-flex';} }
-  if (d.colorMain) {
-    document.documentElement.style.setProperty('--gold',  d.colorMain);
-    document.documentElement.style.setProperty('--goldd', d.colorDark  || '#8B6914');
-    document.documentElement.style.setProperty('--goldf', d.colorLight || '#F5D98B');
-  }
-  if (d.colorBg)   document.documentElement.style.setProperty('--black', d.colorBg);
-  if (d.colorCard) document.documentElement.style.setProperty('--card',  d.colorCard);
-  if (d.heroBg)    { const h = document.getElementById('home'); if(h){ h.style.backgroundImage=`url('${d.heroBg}')`; h.style.backgroundSize='cover'; h.style.backgroundPosition='center'; } }
-  if (d.featHTML)  { const g = document.getElementById('featuresGrid'); if(g) g.innerHTML = d.featHTML; }
-  if (d.tutHTML)   { const t = document.getElementById('tutorialContent'); if(t) t.innerHTML = d.tutHTML; }
-  if (d.faqHTML)   { const f = document.getElementById('faqList'); if(f) f.innerHTML = d.faqHTML; }
-  if (d.footerText){ const ft = document.getElementById('footerText'); if(ft) ft.textContent = d.footerText; }
-
-  // Remplir les champs éditeur
-  fillEditorField('e_heroTitle', d.heroTitle);
-  fillEditorField('e_heroSub',   d.heroSub);
-  fillEditorField('e_heroBadge', d.heroBadge);
-  fillEditorField('e_s1n', d.stat1n); fillEditorField('e_s1l', d.stat1l);
-  fillEditorField('e_s2n', d.stat2n); fillEditorField('e_s2l', d.stat2l);
-  fillEditorField('e_s3n', d.stat3n); fillEditorField('e_s3l', d.stat3l);
-  fillEditorField('e_s4n', d.stat4n); fillEditorField('e_s4l', d.stat4l);
-  fillEditorField('e_cemail', d.cemail);
-  fillEditorField('e_cloc',   d.cloc);
-  fillEditorField('e_chours', d.chours);
-  fillEditorField('e_winUrl',    d.winUrl);
-  fillEditorField('e_mobileUrl', d.mobileUrl);
-  fillEditorField('e_ig',  d.instagram);
-  fillEditorField('e_fb',  d.facebook);
-  fillEditorField('e_logoE', d.logoEmoji);
-  fillEditorField('e_footerText', d.footerText);
-}
-
-function fillEditorField(id, val) {
-  const el = document.getElementById(id);
-  if (el && val !== undefined && val !== null) el.value = val;
-}
-
-// ── Sauvegarder config dans Firestore ─────────────────────────
-window.saveToFirebase = async function(data) {
+// ── Sauvegarder ───────────────────────────────────────────────
+window.saveToFirebase = async (data) => {
   try {
     await setDoc(doc(db, 'site_config', 'main'), data, { merge: true });
-    window.showToast('Sauvegardé ! Visible par tous les visiteurs ✅');
+    window.toast('Sauvegardé ! Visible par tous ✅');
   } catch(e) {
-    window.showToast('Erreur sauvegarde : ' + e.message, 'err');
+    window.toast('Erreur : ' + e.message, 'err');
   }
 };
 
-// ── Upload image vers Firebase Storage ───────────────────────
-window.uploadImage = async function(file, path) {
+// ── Upload fichier ────────────────────────────────────────────
+window.uploadFile = async (file, folder, onProgress) => {
   try {
-    const storRef = ref(stor, `site_assets/${path}/${Date.now()}_${file.name}`);
+    const path = `site_assets/${folder}/${Date.now()}_${file.name}`;
+    const storRef = ref(stor, path);
+    if (onProgress) onProgress(40);
     await uploadBytes(storRef, file);
+    if (onProgress) onProgress(90);
     const url = await getDownloadURL(storRef);
-    return url;
+    if (onProgress) onProgress(100);
+    return { url, path };
   } catch(e) {
-    window.showToast('Erreur upload : ' + e.message, 'err');
+    window.toast('Erreur upload : ' + e.message, 'err');
     return null;
   }
 };
 
-// ── Auth utilisateurs ─────────────────────────────────────────
-window.firebaseSignUp = async function(email, password, prenom) {
+// ── Supprimer fichier Storage ─────────────────────────────────
+window.deleteStorageFile = async (path) => {
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, 'site_users', cred.user.uid), {
-      prenom, email, created: new Date().toISOString()
-    });
-    return { success: true, prenom };
-  } catch(e) {
-    return { success: false, error: e.message };
-  }
+    await deleteObject(ref(stor, path));
+  } catch(e) { /* ignore si déjà supprimé */ }
 };
 
-window.firebaseSignIn = async function(email, password) {
+// ── Auth ──────────────────────────────────────────────────────
+window.fbSignUp = async (email, pwd, prenom) => {
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const snap = await getDoc(doc(db, 'site_users', cred.user.uid));
-    const prenom = snap.exists() ? snap.data().prenom : email;
-    return { success: true, prenom };
-  } catch(e) {
-    return { success: false, error: e.message };
-  }
+    const c = await createUserWithEmailAndPassword(auth, email, pwd);
+    await setDoc(doc(db, 'site_users', c.user.uid), { prenom, email, created: new Date().toISOString() });
+    return { ok: true, prenom };
+  } catch(e) { return { ok: false, err: e.message }; }
 };
 
-window.firebaseSignOut = async function() {
-  await signOut(auth);
+window.fbSignIn = async (email, pwd) => {
+  try {
+    await signInWithEmailAndPassword(auth, email, pwd);
+    return { ok: true };
+  } catch(e) { return { ok: false, err: e.message }; }
 };
+
+window.fbSignOut = async () => { await signOut(auth); };
 
 onAuthStateChanged(auth, (user) => {
-  if (user) {
-    const btn = document.getElementById('compteBtn');
-    if (btn) btn.textContent = '👤 Mon compte';
-  }
-});
-
-// ── Init ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  loadSiteConfig();
-  listenSiteConfig();
-  
-  // Vérifier ?admin=1
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('admin') === '1') {
-    if (sessionStorage.getItem('pilotAdmin') === '1') {
-      window.startEditor();
-    } else {
-      document.getElementById('adminLogin').classList.add('show');
-    }
-  }
+  window._fbUser = user;
+  const btn = document.getElementById('compteBtn');
+  if (btn) btn.textContent = user ? '👤 Mon compte' : 'Mon compte';
 });
 </script>
 
@@ -186,38 +97,37 @@ document.addEventListener('DOMContentLoaded', () => {
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Rajdhani',sans-serif;background:var(--black);color:var(--white);overflow-x:hidden;}
 ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:var(--goldd);border-radius:3px;}
-/* NAV */
-#mainNav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(8,8,8,0.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(212,168,67,0.12);transition:top 0.3s;}
+
+/* ── NAV ── */
+#mainNav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(8,8,8,.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(212,168,67,.12);transition:top .3s;}
 .nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;}
 .nav-logo .ico{width:36px;height:36px;background:linear-gradient(135deg,var(--gold),var(--goldd));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
-.nav-logo img{width:36px;height:36px;border-radius:9px;object-fit:cover;display:none;}
+.nav-logo img.logo-img{width:36px;height:36px;border-radius:9px;object-fit:cover;display:none;}
 .nav-logo span{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--gold);letter-spacing:2px;}
 .nav-links{display:flex;gap:4px;align-items:center;}
-.nav-links a{color:rgba(240,232,216,0.55);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:7px 13px;border-radius:7px;transition:all 0.2s;cursor:pointer;}
-.nav-links a:hover{color:var(--gold);background:rgba(212,168,67,0.07);}
-.btn-gold{background:linear-gradient(135deg,var(--gold),var(--goldd))!important;color:#000!important;font-weight:700!important;border-radius:8px!important;}
-/* Réseaux sociaux */
-.social-links{display:flex;gap:8px;align-items:center;}
-.social-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.06);color:var(--gold);font-size:16px;text-decoration:none;transition:all .2s;}
-.social-btn:hover{background:rgba(212,168,67,.15);border-color:var(--gold);transform:translateY(-1px);}
-/* SECTIONS */
+.nav-links a{color:rgba(240,232,216,.55);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:7px 13px;border-radius:7px;transition:all .2s;cursor:pointer;}
+.nav-links a:hover{color:var(--gold);background:rgba(212,168,67,.07);}
+.social-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.06);color:var(--gold);font-size:14px;text-decoration:none;transition:all .2s;font-weight:700;}
+.social-btn:hover{background:rgba(212,168,67,.15);transform:translateY(-1px);}
+.btn-s{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:transparent;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;border-radius:8px;border:1px solid rgba(212,168,67,.28);cursor:pointer;transition:all .2s;}
+.btn-s:hover{background:rgba(212,168,67,.07);}
+.btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:linear-gradient(135deg,var(--gold),var(--goldd));color:#000;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;border-radius:10px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(212,168,67,.22);}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(212,168,67,.38);}
+
+/* ── SECTIONS ── */
 section{display:none;min-height:100vh;padding-top:64px;}
 section.active{display:block;}
-#home{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:100vh;padding:64px 24px 60px;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(212,168,67,0.05) 0%,transparent 70%);}
+#home{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:100vh;padding:64px 24px 60px;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(212,168,67,.05),transparent);}
 #home.active{display:flex;}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(212,168,67,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,67,0.04) 1px,transparent 1px);background-size:55px 55px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);pointer-events:none;}
-.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(212,168,67,0.3);border-radius:100px;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--gold);margin-bottom:28px;background:rgba(212,168,67,0.05);}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(212,168,67,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,67,.04) 1px,transparent 1px);background-size:55px 55px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);pointer-events:none;}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(212,168,67,.3);border-radius:100px;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--gold);margin-bottom:28px;background:rgba(212,168,67,.05);}
 .badge::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
 h1.hero-h1{font-family:'Cinzel',serif;font-size:clamp(32px,5.5vw,72px);font-weight:900;line-height:1.1;animation:fadeUp .7s ease both;}
 .grad-text{background:linear-gradient(135deg,var(--goldf),var(--gold),var(--goldd));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hero-sub{font-size:clamp(15px,1.8vw,20px);color:rgba(240,232,216,0.5);max-width:580px;line-height:1.65;margin:18px auto 36px;animation:fadeUp .7s .1s ease both;}
-.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeUp .7s .2s ease both;}
-.btn-p{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:linear-gradient(135deg,var(--gold),var(--goldd));color:#000;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;border-radius:10px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(212,168,67,.22);}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(212,168,67,.38);}
-.btn-s{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:transparent;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;border-radius:10px;border:1px solid rgba(212,168,67,.28);cursor:pointer;transition:all .2s;}
-.btn-s:hover{background:rgba(212,168,67,.07);border-color:var(--gold);}
+.hero-sub{font-size:clamp(15px,1.8vw,20px);color:rgba(240,232,216,.5);max-width:580px;line-height:1.65;margin:18px auto 36px;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
 .feat-strip{display:flex;gap:28px;margin-top:60px;flex-wrap:wrap;justify-content:center;}
 .feat-item{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:1px;color:rgba(240,232,216,.4);}
 .feat-item .dot{width:5px;height:5px;background:var(--gold);border-radius:50%;}
@@ -247,27 +157,39 @@ h1.hero-h1{font-family:'Cinzel',serif;font-size:clamp(32px,5.5vw,72px);font-weig
 .dlcard-b ul li{display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(240,232,216,.58);padding:4px 0;}
 .dlcard-b ul li::before{content:'✓';color:var(--green);font-weight:700;font-size:11px;}
 .vbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(34,208,132,.09);border:1px solid rgba(34,208,132,.2);border-radius:100px;font-size:11px;font-weight:600;color:var(--green);letter-spacing:1px;margin-bottom:7px;}
-/* TUTORIEL */
-.steps{max-width:780px;margin:0 auto;}
-.step{display:flex;gap:22px;margin-bottom:36px;position:relative;}
-.step::after{content:'';position:absolute;left:21px;top:46px;bottom:-36px;width:1px;background:linear-gradient(to bottom,var(--goldd),transparent);}
-.step:last-child::after{display:none;}
-.step-n{width:46px;height:46px;background:linear-gradient(135deg,var(--gold),var(--goldd));border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:#000;flex-shrink:0;position:relative;z-index:1;}
-.step-c{flex:1;background:var(--card);border:1px solid var(--border);border-radius:15px;padding:22px;}
-.step-c h3{font-family:'Cinzel',serif;font-size:14px;color:var(--gold);margin-bottom:7px;}
-.step-c p{font-size:13px;color:rgba(240,232,216,.58);line-height:1.7;}
-.tip{display:flex;gap:7px;margin-top:11px;padding:9px 13px;background:rgba(34,208,132,.05);border:1px solid rgba(34,208,132,.13);border-radius:9px;font-size:12px;color:rgba(34,208,132,.8);}
-/* Médias dans tutoriel */
-.tut-media{margin:20px 0;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
-.tut-media img{width:100%;height:auto;display:block;}
-.tut-media iframe{width:100%;height:360px;border:none;display:block;}
-.tut-media embed{width:100%;height:500px;border:none;display:block;}
-.faq-item{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px 22px;margin-bottom:10px;cursor:pointer;transition:all .2s;}
+
+/* ── TUTORIEL ── */
+.tut-rubrique{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:24px;position:relative;}
+.tut-rubrique-header{padding:20px 24px;background:linear-gradient(135deg,rgba(212,168,67,.06),transparent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;}
+.tut-rubrique-header h3{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);flex:1;}
+.tut-rubrique-header .toggle{color:var(--goldd);font-size:18px;transition:transform .3s;}
+.tut-rubrique-header.open .toggle{transform:rotate(180deg);}
+.tut-rubrique-body{display:none;padding:24px;}
+.tut-rubrique-body.open{display:block;}
+.tut-bloc{margin-bottom:20px;position:relative;}
+.tut-bloc.layout-full img,.tut-bloc.layout-full video{width:100%;border-radius:12px;}
+.tut-bloc.layout-left,.tut-bloc.layout-right{display:flex;gap:20px;align-items:flex-start;}
+.tut-bloc.layout-right{flex-direction:row-reverse;}
+.tut-bloc.layout-left img,.tut-bloc.layout-right img{width:45%;border-radius:12px;flex-shrink:0;}
+.tut-bloc-text{flex:1;}
+.tut-bloc-text p{font-size:14px;color:rgba(240,232,216,.65);line-height:1.7;}
+.tut-bloc-text h4{font-family:'Cinzel',serif;font-size:14px;color:var(--gold);margin-bottom:8px;}
+.tut-bloc iframe{width:100%;height:360px;border:none;border-radius:12px;}
+.tut-bloc embed{width:100%;height:500px;border:none;border-radius:12px;}
+.tut-bloc .del-btn{display:none;position:absolute;top:8px;right:8px;width:28px;height:28px;background:rgba(255,68,68,.8);border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;align-items:center;justify-content:center;z-index:10;}
+body.edit-active .tut-bloc:hover .del-btn{display:flex;}
+
+/* ── FAQ ── */
+.faq-item{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px 22px;margin-bottom:10px;cursor:pointer;transition:all .2s;position:relative;}
 .faq-item:hover{border-color:rgba(212,168,67,.2);}
 .faq-q{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600;color:var(--white);}
 .faq-a{display:none;margin-top:11px;font-size:13px;color:rgba(240,232,216,.55);line-height:1.7;}
+.faq-del{display:none;position:absolute;top:8px;right:40px;width:24px;height:24px;background:rgba(255,68,68,.7);border:none;border-radius:5px;color:#fff;font-size:12px;cursor:pointer;align-items:center;justify-content:center;}
+body.edit-active .faq-item:hover .faq-del{display:flex;}
+
+/* ── CONTACT ── */
 .cgrid{display:grid;grid-template-columns:1fr 1.4fr;gap:36px;align-items:start;}
-@media(max-width:700px){.cgrid{grid-template-columns:1fr;}.nav-links{display:none;}}
+@media(max-width:700px){.cgrid{grid-template-columns:1fr;}.nav-links .hide-mobile{display:none;}}
 .cinfo-item{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--border);}
 .c-ico{width:36px;height:36px;background:rgba(212,168,67,.07);border:1px solid rgba(212,168,67,.13);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;}
 .c-label{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--goldd);text-transform:uppercase;margin-bottom:2px;}
@@ -283,30 +205,58 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:36px 22
 footer p{font-size:11px;color:rgba(240,232,216,.28);letter-spacing:1px;}
 footer a{color:var(--goldd);text-decoration:none;}
 .footer-social{display:flex;gap:12px;justify-content:center;margin-bottom:16px;}
-.footer-social a{display:none;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.05);color:var(--gold);font-size:18px;text-decoration:none;transition:all .2s;}
+.footer-social a{display:none;width:38px;height:38px;border-radius:9px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.05);color:var(--gold);font-size:18px;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;font-weight:700;}
 .footer-social a:hover{background:rgba(212,168,67,.15);transform:translateY(-2px);}
-.toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:13px 18px;font-size:13px;color:var(--white);z-index:9999;transform:translateY(16px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.4);}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:13px 18px;font-size:13px;color:var(--white);z-index:99999;transform:translateY(16px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.4);}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.ok{border-left:3px solid var(--green);}
 .toast.err{border-left:3px solid var(--red);}
+
+/* ── MODALS ── */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
 .modal-ov.open{opacity:1;pointer-events:all;}
 .modal{background:var(--card);border:1px solid rgba(212,168,67,.28);border-radius:20px;width:90%;max-width:420px;padding:32px;transform:translateY(16px);transition:transform .3s;max-height:90vh;overflow-y:auto;}
 .modal-ov.open .modal{transform:translateY(0);}
 .modal h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);text-align:center;margin-bottom:5px;}
 .modal p{font-size:12px;color:rgba(240,232,216,.38);text-align:center;margin-bottom:22px;}
-/* ÉDITEUR ADMIN */
-#editBar{display:none;position:fixed;top:0;left:0;right:0;height:46px;background:linear-gradient(135deg,#1a1000,#2a1e00);border-bottom:2px solid var(--gold);align-items:center;gap:6px;padding:0 12px;z-index:2000;overflow-x:auto;}
+
+/* ── ÉDITEUR ADMIN ── */
+/* Barre flottante déplaçable en bas */
+#editBar{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  height:52px;background:linear-gradient(135deg,#1a1000,#2a1e00);
+  border-top:2px solid var(--gold);align-items:center;gap:6px;
+  padding:0 14px;z-index:2000;box-shadow:0 -4px 20px rgba(212,168,67,.15);
+  cursor:default;
+}
 #editBar.on{display:flex;}
-#editBar.on ~ #mainNav{top:46px;}
-.eb-logo{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);letter-spacing:2px;margin-right:4px;white-space:nowrap;}
+#editBar.floating{
+  bottom:auto;left:50%;transform:translateX(-50%);
+  width:auto;min-width:600px;border-radius:14px;border:2px solid var(--gold);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+}
+.eb-drag{cursor:grab;color:rgba(212,168,67,.4);font-size:16px;padding:0 4px;}
+.eb-drag:active{cursor:grabbing;}
+.eb-logo{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);letter-spacing:2px;white-space:nowrap;}
 .eb-sep{width:1px;height:24px;background:rgba(212,168,67,.2);margin:0 2px;flex-shrink:0;}
-.eb-btn{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:5px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.07);color:var(--gold);font-size:9px;font-weight:600;letter-spacing:.8px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Rajdhani',sans-serif;flex-shrink:0;}
+.eb-btn{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;border:1px solid rgba(212,168,67,.2);background:rgba(212,168,67,.07);color:var(--gold);font-size:10px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Rajdhani',sans-serif;flex-shrink:0;}
 .eb-btn:hover,.eb-btn.active{background:rgba(212,168,67,.18);border-color:var(--gold);}
-.eb-close{margin-left:auto;padding:4px 10px;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.2);border-radius:5px;color:var(--red);font-size:9px;font-weight:600;cursor:pointer;letter-spacing:.8px;font-family:'Rajdhani',sans-serif;flex-shrink:0;}
-#editPanel{position:fixed;right:0;top:46px;bottom:0;width:300px;background:#0e0e0e;border-left:1px solid rgba(212,168,67,.15);z-index:1900;display:none;flex-direction:column;overflow:hidden;box-shadow:-8px 0 30px rgba(0,0,0,.5);}
+.eb-close{margin-left:auto;padding:5px 12px;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.2);border-radius:6px;color:var(--red);font-size:10px;font-weight:600;cursor:pointer;font-family:'Rajdhani',sans-serif;flex-shrink:0;}
+
+/* Panneau latéral */
+#editPanel{
+  position:fixed;right:0;bottom:52px;width:300px;
+  background:#0e0e0e;border-left:1px solid rgba(212,168,67,.15);
+  border-top:1px solid rgba(212,168,67,.15);
+  z-index:1900;display:none;flex-direction:column;
+  max-height:calc(100vh - 52px);overflow:hidden;
+  box-shadow:-8px 0 30px rgba(0,0,0,.5);
+}
 #editPanel.open{display:flex;}
-.ep-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;}
+#editBar.floating ~ #editPanel{bottom:auto;top:50%;right:20px;transform:translateY(-50%);max-height:80vh;border-radius:14px;}
+.ep-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
 .ep-tab{flex:1;min-width:40px;padding:9px 4px;text-align:center;font-size:9px;font-weight:600;letter-spacing:.5px;color:rgba(240,232,216,.35);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;white-space:nowrap;}
 .ep-tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(212,168,67,.04);}
 .ep-body{flex:1;overflow-y:auto;padding:12px;}
@@ -316,25 +266,27 @@ footer a{color:var(--goldd);text-decoration:none;}
 .ep-section.active{display:block;}
 .ep-field{margin-bottom:12px;}
 .ep-field label{display:block;font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--goldd);text-transform:uppercase;margin-bottom:4px;}
-.ep-field input,.ep-field textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(212,168,67,.12);border-radius:6px;padding:7px 10px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:12px;outline:none;transition:border-color .2s;}
+.ep-field input,.ep-field textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(212,168,67,.12);border-radius:6px;padding:7px 10px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:12px;outline:none;}
 .ep-field input:focus,.ep-field textarea:focus{border-color:var(--gold);}
-.ep-field textarea{resize:vertical;min-height:70px;}
+.ep-field textarea{resize:vertical;min-height:60px;}
 .ep-field input[type=color]{height:32px;padding:2px;cursor:pointer;}
 .ep-field input[type=file]{color:rgba(240,232,216,.6);font-size:11px;}
 .ep-save{width:100%;background:linear-gradient(135deg,var(--gold),var(--goldd));color:#000;border:none;border-radius:7px;padding:10px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;margin-top:6px;}
-.ep-save:hover{opacity:.9;}
 .ep-div{height:1px;background:var(--border);margin:12px 0;}
 .ep-lbl{font-family:'Cinzel',serif;font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;}
 .csrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
 .csw{width:26px;height:26px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:all .2s;}
 .csw:hover,.csw.sel{border-color:var(--white);transform:scale(1.1);}
-.upload-zone{border:2px dashed rgba(212,168,67,.2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px;}
+.upload-zone{border:2px dashed rgba(212,168,67,.2);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px;}
 .upload-zone:hover{border-color:var(--gold);background:rgba(212,168,67,.03);}
-.upload-zone p{font-size:11px;color:rgba(240,232,216,.4);margin-top:6px;}
-.media-preview{width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--border);overflow:hidden;}
-.media-preview img{width:100%;height:auto;display:block;}
-.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--goldd));border-radius:2px;transition:width .3s;}
+.upload-zone .uz-icon{font-size:24px;}
+.upload-zone p{font-size:10px;color:rgba(240,232,216,.4);margin-top:4px;}
+.pbar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;display:none;}
+.pbar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--goldd));border-radius:2px;transition:width .3s;}
+.layout-btns{display:flex;gap:6px;margin:6px 0;}
+.layout-btn{flex:1;padding:6px 4px;background:#111;border:1px solid #333;border-radius:6px;color:#888;font-size:10px;cursor:pointer;text-align:center;transition:all .2s;}
+.layout-btn:hover,.layout-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,67,.08);}
+
 /* Admin login */
 #adminLogin{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);z-index:9999;align-items:center;justify-content:center;}
 #adminLogin.show{display:flex;}
@@ -349,33 +301,36 @@ footer a{color:var(--goldd);text-decoration:none;}
 </head>
 <body>
 
-<!-- ADMIN LOGIN -->
+<!-- LOGIN ADMIN -->
 <div id="adminLogin">
   <div class="al-box">
     <div style="text-align:center;font-size:36px;margin-bottom:14px;">✈️</div>
     <h2>Pilot Photobooth</h2>
     <p>Espace administrateur</p>
     <div id="alErr" class="al-err">Email ou mot de passe incorrect.</div>
-    <input type="email" id="alEmail" class="al-input" placeholder="Email administrateur">
+    <input type="email" id="alEmail" class="al-input" placeholder="Email admin">
     <input type="password" id="alPwd" class="al-input" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doAdminLogin()">
     <button class="al-btn" onclick="doAdminLogin()">Accéder à l'éditeur</button>
     <div style="text-align:center;margin-top:14px;font-size:11px;color:#444;cursor:pointer;" onclick="closeAdminLogin()">← Retour au site</div>
   </div>
 </div>
 
-<!-- BARRE ÉDITEUR -->
+<!-- BARRE ÉDITEUR FLOTTANTE -->
 <div id="editBar">
+  <span class="eb-drag" id="ebDrag" title="Déplacer">⠿</span>
   <div class="eb-logo">✈ ÉDITION</div>
   <div class="eb-sep"></div>
   <div class="eb-btn" onclick="togglePanel('textes')" id="eb1">✏️ Textes</div>
   <div class="eb-btn" onclick="togglePanel('couleurs')" id="eb2">🎨 Couleurs</div>
   <div class="eb-btn" onclick="togglePanel('medias')" id="eb3">🖼 Médias</div>
-  <div class="eb-btn" onclick="togglePanel('liens')" id="eb4">🔗 Liens</div>
-  <div class="eb-btn" onclick="togglePanel('ajouter')" id="eb5">➕ Ajouter</div>
+  <div class="eb-btn" onclick="togglePanel('tuto')" id="eb4">📖 Tutoriel</div>
+  <div class="eb-btn" onclick="togglePanel('liens')" id="eb5">🔗 Liens</div>
+  <div class="eb-btn" onclick="togglePanel('ajouter')" id="eb6">➕ Ajouter</div>
   <div class="eb-sep"></div>
   <div class="eb-btn" onclick="undoEdit()" title="Ctrl+Z">↩</div>
   <div class="eb-btn" onclick="redoEdit()" title="Ctrl+Y">↪</div>
-  <div class="eb-close" onclick="closeEditor()">✕ Quitter</div>
+  <div class="eb-btn" onclick="toggleFloat()" title="Déplacer la barre">⤢</div>
+  <div class="eb-close" onclick="closeEditor()">✕</div>
 </div>
 
 <!-- PANNEAU ÉDITEUR -->
@@ -384,6 +339,7 @@ footer a{color:var(--goldd);text-decoration:none;}
     <div class="ep-tab active" onclick="epTab('textes',this)">Textes</div>
     <div class="ep-tab" onclick="epTab('couleurs',this)">Couleurs</div>
     <div class="ep-tab" onclick="epTab('medias',this)">Médias</div>
+    <div class="ep-tab" onclick="epTab('tuto',this)">Tutoriel</div>
     <div class="ep-tab" onclick="epTab('liens',this)">Liens</div>
     <div class="ep-tab" onclick="epTab('ajouter',this)">Ajouter</div>
   </div>
@@ -392,112 +348,123 @@ footer a{color:var(--goldd);text-decoration:none;}
     <!-- TEXTES -->
     <div class="ep-section active" id="ep-textes">
       <div class="ep-lbl">Accueil</div>
-      <div class="ep-field"><label>Titre principal</label><input id="e_heroTitle" placeholder="Pilotez vos photobooths"></div>
-      <div class="ep-field"><label>Sous-titre</label><textarea id="e_heroSub" rows="3"></textarea></div>
-      <div class="ep-field"><label>Badge haut</label><input id="e_heroBadge"></div>
+      <div class="ep-field"><label>Titre</label><input id="e_heroTitle" oninput="live('heroTitle',this.value)"></div>
+      <div class="ep-field"><label>Sous-titre</label><textarea id="e_heroSub" oninput="live('heroSub',this.value)" rows="3"></textarea></div>
+      <div class="ep-field"><label>Badge</label><input id="e_heroBadge" oninput="live('heroBadge',this.value)"></div>
       <div class="ep-div"></div>
-      <div class="ep-lbl">Statistiques</div>
-      <div class="ep-field"><label>Stat 1 Chiffre</label><input id="e_s1n"></div>
-      <div class="ep-field"><label>Stat 1 Label</label><input id="e_s1l"></div>
-      <div class="ep-field"><label>Stat 2 Chiffre</label><input id="e_s2n"></div>
-      <div class="ep-field"><label>Stat 2 Label</label><input id="e_s2l"></div>
-      <div class="ep-field"><label>Stat 3 Chiffre</label><input id="e_s3n"></div>
-      <div class="ep-field"><label>Stat 3 Label</label><input id="e_s3l"></div>
-      <div class="ep-field"><label>Stat 4 Chiffre</label><input id="e_s4n"></div>
-      <div class="ep-field"><label>Stat 4 Label</label><input id="e_s4l"></div>
+      <div class="ep-lbl">Stats</div>
+      <div class="ep-field"><label>Stat 1 chiffre</label><input id="e_s1n" oninput="live('stat1n',this.value)"></div>
+      <div class="ep-field"><label>Stat 1 label</label><input id="e_s1l" oninput="live('stat1l',this.value)"></div>
+      <div class="ep-field"><label>Stat 2 chiffre</label><input id="e_s2n" oninput="live('stat2n',this.value)"></div>
+      <div class="ep-field"><label>Stat 2 label</label><input id="e_s2l" oninput="live('stat2l',this.value)"></div>
+      <div class="ep-field"><label>Stat 3 chiffre</label><input id="e_s3n" oninput="live('stat3n',this.value)"></div>
+      <div class="ep-field"><label>Stat 3 label</label><input id="e_s3l" oninput="live('stat3l',this.value)"></div>
+      <div class="ep-field"><label>Stat 4 chiffre</label><input id="e_s4n" oninput="live('stat4n',this.value)"></div>
+      <div class="ep-field"><label>Stat 4 label</label><input id="e_s4l" oninput="live('stat4l',this.value)"></div>
       <div class="ep-div"></div>
       <div class="ep-lbl">Contact</div>
-      <div class="ep-field"><label>Email affiché</label><input id="e_cemail"></div>
-      <div class="ep-field"><label>Localisation</label><input id="e_cloc"></div>
-      <div class="ep-field"><label>Horaires</label><input id="e_chours"></div>
-      <div class="ep-div"></div>
-      <div class="ep-field"><label>Texte footer</label><input id="e_footerText"></div>
-      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER — visible par tous</button>
+      <div class="ep-field"><label>Email affiché</label><input id="e_cemail" oninput="live('cemail',this.value)"></div>
+      <div class="ep-field"><label>Localisation</label><input id="e_cloc" oninput="live('cloc',this.value)"></div>
+      <div class="ep-field"><label>Horaires</label><input id="e_chours" oninput="live('chours',this.value)"></div>
+      <div class="ep-field"><label>Footer</label><input id="e_footerText"></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER TOUT</button>
     </div>
 
     <!-- COULEURS -->
     <div class="ep-section" id="ep-couleurs">
       <div class="ep-lbl">Thèmes rapides</div>
       <div class="csrow">
-        <div class="csw sel" style="background:#D4A843" onclick="applyTheme('#D4A843','#8B6914','#F5D98B',this)" title="Or"></div>
-        <div class="csw" style="background:#4A9EFF" onclick="applyTheme('#4A9EFF','#1A6ECC','#8AC8FF',this)" title="Bleu"></div>
-        <div class="csw" style="background:#22D084" onclick="applyTheme('#22D084','#158A54','#7FFFC4',this)" title="Vert"></div>
-        <div class="csw" style="background:#FF6B6B" onclick="applyTheme('#FF6B6B','#CC2222','#FFAAAA',this)" title="Rouge"></div>
-        <div class="csw" style="background:#A855F7" onclick="applyTheme('#A855F7','#7C3AED','#D4AAFF',this)" title="Violet"></div>
-        <div class="csw" style="background:#F97316" onclick="applyTheme('#F97316','#C45A0A','#FDC08A',this)" title="Orange"></div>
-        <div class="csw" style="background:#EC4899" onclick="applyTheme('#EC4899','#A82070','#F9A8D4',this)" title="Rose"></div>
-        <div class="csw" style="background:#14B8A6" onclick="applyTheme('#14B8A6','#0A7A70','#7FE8E0',this)" title="Teal"></div>
+        <div class="csw sel" style="background:#D4A843" onclick="applyTheme('#D4A843','#8B6914','#F5D98B',this)"></div>
+        <div class="csw" style="background:#4A9EFF" onclick="applyTheme('#4A9EFF','#1A6ECC','#8AC8FF',this)"></div>
+        <div class="csw" style="background:#22D084" onclick="applyTheme('#22D084','#158A54','#7FFFC4',this)"></div>
+        <div class="csw" style="background:#FF6B6B" onclick="applyTheme('#FF6B6B','#CC2222','#FFAAAA',this)"></div>
+        <div class="csw" style="background:#A855F7" onclick="applyTheme('#A855F7','#7C3AED','#D4AAFF',this)"></div>
+        <div class="csw" style="background:#F97316" onclick="applyTheme('#F97316','#C45A0A','#FDC08A',this)"></div>
+        <div class="csw" style="background:#EC4899" onclick="applyTheme('#EC4899','#A82070','#F9A8D4',this)"></div>
+        <div class="csw" style="background:#14B8A6" onclick="applyTheme('#14B8A6','#0A7A70','#7FE8E0',this)"></div>
       </div>
       <div class="ep-div"></div>
-      <div class="ep-field"><label>Couleur principale</label><input type="color" id="e_cm" value="#D4A843" oninput="setVar('--gold',this.value)"></div>
-      <div class="ep-field"><label>Couleur sombre</label><input type="color" id="e_cd" value="#8B6914" oninput="setVar('--goldd',this.value)"></div>
-      <div class="ep-field"><label>Fond de page</label><input type="color" id="e_bg" value="#080808" oninput="setVar('--black',this.value)"></div>
-      <div class="ep-field"><label>Couleur cartes</label><input type="color" id="e_cc" value="#111111" oninput="setVar('--card',this.value)"></div>
-      <button class="ep-save" onclick="saveColors()">💾 SAUVEGARDER COULEURS</button>
+      <div class="ep-field"><label>Couleur principale</label><input type="color" id="e_cm" value="#D4A843" oninput="setV('--gold',this.value)"></div>
+      <div class="ep-field"><label>Fond page</label><input type="color" id="e_bg" value="#080808" oninput="setV('--black',this.value)"></div>
+      <div class="ep-field"><label>Couleur cartes</label><input type="color" id="e_cc" value="#111111" oninput="setV('--card',this.value)"></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER</button>
     </div>
 
     <!-- MÉDIAS -->
     <div class="ep-section" id="ep-medias">
-      <div class="ep-lbl">Logo du site</div>
-      <div class="upload-zone" onclick="document.getElementById('logoUpload').click()">
-        <div style="font-size:28px;">🖼</div>
-        <p>Cliquez pour importer votre logo<br><small>PNG, JPG — max 2MB</small></p>
+      <div class="ep-lbl">Logo</div>
+      <div class="upload-zone" onclick="document.getElementById('logoFile').click()">
+        <div class="uz-icon">🖼</div>
+        <p>Importer votre logo (PNG/JPG)</p>
       </div>
-      <input type="file" id="logoUpload" accept="image/*" style="display:none" onchange="uploadLogo(this)">
-      <div id="logoPreview" class="media-preview" style="display:none;"><img id="logoPreviewImg" src=""></div>
-      <div class="progress-bar" id="logoProg" style="display:none;"><div class="progress-fill" id="logoProgFill" style="width:0%"></div></div>
+      <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="uploadLogo(this)">
+      <div class="pbar" id="pb_logo"><div class="pbar-fill" id="pf_logo" style="width:0"></div></div>
 
       <div class="ep-div"></div>
-      <div class="ep-lbl">Image d'arrière-plan Hero</div>
-      <div class="upload-zone" onclick="document.getElementById('heroBgUpload').click()">
-        <div style="font-size:28px;">🌅</div>
-        <p>Image de fond de la page accueil<br><small>JPG, PNG — max 5MB</small></p>
+      <div class="ep-lbl">Image Hero (fond accueil)</div>
+      <div class="upload-zone" onclick="document.getElementById('heroFile').click()">
+        <div class="uz-icon">🌅</div>
+        <p>Importer image de fond</p>
       </div>
-      <input type="file" id="heroBgUpload" accept="image/*" style="display:none" onchange="uploadHeroBg(this)">
-      <div class="progress-bar" id="heroProg" style="display:none;"><div class="progress-fill" id="heroProgFill" style="width:0%"></div></div>
-      <div class="ep-field" style="margin-top:8px;"><label>Ou URL directe</label><input id="e_heroBg" placeholder="https://..." oninput="previewHeroBg(this.value)"></div>
+      <input type="file" id="heroFile" accept="image/*" style="display:none" onchange="uploadHero(this)">
+      <div class="ep-field" style="margin-top:8px;"><label>Ou URL directe</label><input id="e_heroBg" placeholder="https://..." oninput="applyHeroBg(this.value)"></div>
+      <div class="pbar" id="pb_hero"><div class="pbar-fill" id="pf_hero" style="width:0"></div></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER</button>
+    </div>
+
+    <!-- TUTORIEL -->
+    <div class="ep-section" id="ep-tuto">
+      <div class="ep-lbl">Créer une rubrique</div>
+      <div class="ep-field"><label>Titre de la rubrique</label><input id="rubTitle" placeholder="Ex: Installation Windows"></div>
+      <div class="ep-field"><label>Icône emoji</label><input id="rubIcon" placeholder="💻" maxlength="4"></div>
+      <button class="ep-save" onclick="addRubrique()">➕ CRÉER LA RUBRIQUE</button>
 
       <div class="ep-div"></div>
-      <div class="ep-lbl">Ajouter dans le tutoriel</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-        <div class="upload-zone" style="padding:10px;" onclick="document.getElementById('tutImgUpload').click()">
-          <div style="font-size:20px;">🖼</div>
-          <p style="font-size:9px;">Image</p>
+      <div class="ep-lbl">Ajouter dans la dernière rubrique</div>
+
+      <div style="font-size:10px;color:var(--goldd);margin-bottom:6px;">DISPOSITION DU BLOC</div>
+      <div class="layout-btns">
+        <div class="layout-btn active" id="lb_full" onclick="setLayout('full',this)">■ Pleine largeur</div>
+        <div class="layout-btn" id="lb_left" onclick="setLayout('left',this)">◧ Image gauche</div>
+        <div class="layout-btn" id="lb_right" onclick="setLayout('right',this)">◨ Image droite</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0;">
+        <div class="upload-zone" style="padding:10px" onclick="document.getElementById('tutImg').click()">
+          <div class="uz-icon" style="font-size:18px;">🖼</div><p style="font-size:9px;">Image</p>
         </div>
-        <div class="upload-zone" style="padding:10px;" onclick="document.getElementById('tutVidInput').style.display='block'">
-          <div style="font-size:20px;">▶</div>
-          <p style="font-size:9px;">Vidéo URL</p>
+        <div class="upload-zone" style="padding:10px" onclick="showVidInput()">
+          <div class="uz-icon" style="font-size:18px;">▶</div><p style="font-size:9px;">Vidéo</p>
         </div>
-        <div class="upload-zone" style="padding:10px;" onclick="document.getElementById('tutPdfUpload').click()">
-          <div style="font-size:20px;">📄</div>
-          <p style="font-size:9px;">PDF</p>
+        <div class="upload-zone" style="padding:10px" onclick="document.getElementById('tutPdf').click()">
+          <div class="uz-icon" style="font-size:18px;">📄</div><p style="font-size:9px;">PDF</p>
         </div>
       </div>
-      <input type="file" id="tutImgUpload" accept="image/*" style="display:none" onchange="addTutImage(this)">
-      <input type="file" id="tutPdfUpload" accept=".pdf" style="display:none" onchange="addTutPdf(this)">
-      <div id="tutVidInput" style="display:none;">
-        <div class="ep-field"><label>URL YouTube/Vimeo embed</label><input id="e_vidUrl" placeholder="https://www.youtube.com/embed/..."></div>
-        <button class="ep-save" style="margin-bottom:8px;" onclick="addTutVideo()">➕ Ajouter la vidéo</button>
+      <input type="file" id="tutImg" accept="image/*" style="display:none" onchange="addTutMedia(this,'img')">
+      <input type="file" id="tutPdf" accept=".pdf" style="display:none" onchange="addTutMedia(this,'pdf')">
+
+      <div id="vidInputBox" style="display:none;">
+        <div class="ep-field"><label>URL YouTube embed</label><input id="vidUrl" placeholder="https://www.youtube.com/embed/..."></div>
+        <button class="ep-save" onclick="addTutVideo()">➕ Ajouter vidéo</button>
       </div>
-      <div class="progress-bar" id="tutProg" style="display:none;"><div class="progress-fill" id="tutProgFill" style="width:0%"></div></div>
-      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER MÉDIAS</button>
+
+      <div class="ep-field"><label>Texte associé au bloc</label><textarea id="tutText" rows="3" placeholder="Description, explication..."></textarea></div>
+      <div class="ep-field"><label>Titre du bloc (optionnel)</label><input id="tutBlockTitle" placeholder="Titre..."></div>
+      <div class="pbar" id="pb_tut"><div class="pbar-fill" id="pf_tut" style="width:0"></div></div>
     </div>
 
     <!-- LIENS -->
     <div class="ep-section" id="ep-liens">
       <div class="ep-lbl">Téléchargements</div>
-      <div style="padding:9px;background:rgba(212,168,67,.04);border:1px solid rgba(212,168,67,.1);border-radius:7px;font-size:10px;color:rgba(240,232,216,.4);line-height:1.6;margin-bottom:10px;">
-        💡 <b style="color:var(--goldd)">GitHub Releases</b> — hébergez gratuitement et collez l'URL directe.
-      </div>
-      <div class="ep-field"><label>URL Setup Windows (.exe)</label><input id="e_winUrl" placeholder="https://github.com/.../Setup.exe"></div>
-      <div class="ep-field"><label>URL APK Android (.apk)</label><input id="e_mobileUrl" placeholder="https://drive.google.com/..."></div>
+      <div class="ep-field"><label>URL Windows (.exe)</label><input id="e_winUrl" placeholder="https://github.com/.../Setup.exe"></div>
+      <div class="ep-field"><label>URL APK Android</label><input id="e_mobileUrl" placeholder="https://drive.google.com/..."></div>
       <div class="ep-div"></div>
       <div class="ep-lbl">Réseaux sociaux</div>
-      <div class="ep-field"><label>🔵 Facebook URL</label><input id="e_fb" placeholder="https://facebook.com/pilotphotobooth"></div>
-      <div class="ep-field"><label>📸 Instagram URL</label><input id="e_ig" placeholder="https://instagram.com/pilotphotobooth"></div>
+      <div class="ep-field"><label>🔵 Facebook</label><input id="e_fb" placeholder="https://facebook.com/..."></div>
+      <div class="ep-field"><label>📸 Instagram</label><input id="e_ig" placeholder="https://instagram.com/..."></div>
       <div class="ep-div"></div>
-      <div class="ep-field"><label>Emoji logo navbar (si pas d'image)</label><input id="e_logoE" maxlength="4" placeholder="✈️"></div>
-      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER LIENS</button>
+      <div class="ep-field"><label>Emoji logo navbar</label><input id="e_logoE" maxlength="4" placeholder="✈️" oninput="live('navIco',this.value)"></div>
+      <button class="ep-save" onclick="saveAll()">💾 SAUVEGARDER</button>
     </div>
 
     <!-- AJOUTER -->
@@ -506,12 +473,7 @@ footer a{color:var(--goldd);text-decoration:none;}
       <div class="ep-field"><label>Emoji</label><input id="nCIco" placeholder="🚀" maxlength="4"></div>
       <div class="ep-field"><label>Titre</label><input id="nCTitle"></div>
       <div class="ep-field"><label>Description</label><textarea id="nCDesc" rows="2"></textarea></div>
-      <button class="ep-save" onclick="addCard()">➕ AJOUTER CARTE</button>
-      <div class="ep-div"></div>
-      <div class="ep-lbl">➕ Étape tutoriel</div>
-      <div class="ep-field"><label>Titre</label><input id="nSTitle"></div>
-      <div class="ep-field"><label>Description</label><textarea id="nSDesc" rows="2"></textarea></div>
-      <button class="ep-save" onclick="addStep()">➕ AJOUTER ÉTAPE</button>
+      <button class="ep-save" onclick="addCard()">➕ AJOUTER</button>
       <div class="ep-div"></div>
       <div class="ep-lbl">➕ FAQ</div>
       <div class="ep-field"><label>Question</label><input id="nFQ"></div>
@@ -525,19 +487,17 @@ footer a{color:var(--goldd);text-decoration:none;}
 <!-- NAV -->
 <nav id="mainNav">
   <div class="nav-logo" onclick="go('home')">
-    <img id="navLogo" src="" alt="Logo">
+    <img class="logo-img" id="navLogo" src="" alt="">
     <div class="ico" id="navIco">✈️</div>
     <span>PILOT PHOTOBOOTH</span>
   </div>
   <div class="nav-links">
-    <a onclick="go('home')">Accueil</a>
+    <a onclick="go('home')" class="hide-mobile">Accueil</a>
     <a onclick="go('download')">Télécharger</a>
     <a onclick="go('tutorial')">Tutoriel</a>
     <a onclick="go('contact')">Contact</a>
-    <div class="social-links">
-      <a id="fbLink" href="#" class="social-btn" target="_blank" title="Facebook">f</a>
-      <a id="igLink" href="#" class="social-btn" target="_blank" title="Instagram">📸</a>
-    </div>
+    <a id="fbNav" href="#" class="social-btn" target="_blank">f</a>
+    <a id="igNav" href="#" class="social-btn" target="_blank">📸</a>
     <a onclick="openModal('compteModal')" id="compteBtn" class="btn-s" style="padding:7px 13px;font-size:11px;">Mon compte</a>
   </div>
 </nav>
@@ -614,24 +574,33 @@ footer a{color:var(--goldd);text-decoration:none;}
 <section id="tutorial">
   <div class="si">
     <div class="slabel">Guide d'installation</div>
-    <h2 class="stitle">Démarrer en <span>5 minutes</span></h2>
-    <p class="sdesc">Suivez ces étapes pour connecter votre photobooth à l'application mobile.</p>
-    <div id="tutorialContent">
-      <div class="steps" id="tutorialSteps">
-        <div class="step"><div class="step-n">1</div><div class="step-c"><h3>Créer votre compte</h3><p>Téléchargez l'app et créez votre compte. Utilisez les mêmes identifiants sur l'app et le logiciel PC.</p><div class="tip">💡 Google Sign-In disponible pour une connexion rapide.</div></div></div>
-        <div class="step"><div class="step-n">2</div><div class="step-c"><h3>Choisir votre abonnement</h3><p>Mensuel (25€/mois) ou annuel (250€/an). Bornes supplémentaires à 6€/mois.</p></div></div>
-        <div class="step"><div class="step-n">3</div><div class="step-c"><h3>Installer le logiciel PC</h3><p>Installez Setup_PilotPhotobooth_v11.0.exe sur le PC de votre borne. Droits administrateur requis.</p><div class="tip">💡 Le logiciel démarre automatiquement avec Windows.</div></div></div>
-        <div class="step"><div class="step-n">4</div><div class="step-c"><h3>Configurer</h3><p>Connectez-vous, nommez votre borne, sélectionnez votre imprimante et le dossier photos dslrBooth.</p></div></div>
-        <div class="step"><div class="step-n">5</div><div class="step-c"><h3>C'est prêt !</h3><p>Votre borne apparaît dans l'app en 30 secondes. Statut vert = EN LIGNE. Pilotez depuis n'importe où !</p><div class="tip">✅ Tout est synchronisé automatiquement.</div></div></div>
+    <h2 class="stitle">Démarrer avec <span>Pilot Photobooth</span></h2>
+    <p class="sdesc">Tutoriels, guides et démos pour prendre en main votre solution.</p>
+    <div id="tutorialRubriques">
+      <!-- Rubriques chargées depuis Firebase -->
+      <div class="tut-rubrique">
+        <div class="tut-rubrique-header open" onclick="toggleRub(this)">
+          <span style="font-size:20px;">🚀</span>
+          <h3>Démarrage rapide</h3>
+          <span class="toggle">▼</span>
+        </div>
+        <div class="tut-rubrique-body open" id="defaultRub">
+          <div class="tut-bloc layout-full" data-path="">
+            <button class="del-btn" onclick="deleteTutBloc(this)">✕</button>
+            <div class="tut-bloc-text">
+              <h4>Installation en 5 étapes</h4>
+              <p>1. Créez votre compte dans l'application mobile<br>2. Choisissez votre abonnement<br>3. Installez le logiciel sur le PC de la borne<br>4. Connectez-vous avec les mêmes identifiants<br>5. Votre borne apparaît en ligne dans 30 secondes ✅</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="tutorialMedias" style="margin-top:30px;"></div>
     </div>
     <div style="margin-top:50px;">
       <div style="font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin-bottom:20px;letter-spacing:1px;">Questions fréquentes</div>
       <div id="faqList">
-        <div class="faq-item" onclick="faq(this)"><div class="faq-q"><span>Compatible macOS ?</span><span>+</span></div><div class="faq-a">Non, Windows 10/11 uniquement pour le logiciel. L'app mobile est Android et iOS.</div></div>
-        <div class="faq-item" onclick="faq(this)"><div class="faq-q"><span>Quel logiciel photo compatible ?</span><span>+</span></div><div class="faq-a">dslrBooth, Sparkbooth, Breeze — tout logiciel qui enregistre en JPG/PNG dans un dossier Windows.</div></div>
-        <div class="faq-item" onclick="faq(this)"><div class="faq-q"><span>Plusieurs bornes possibles ?</span><span>+</span></div><div class="faq-a">Oui ! Chaque borne supplémentaire = 6€/mois. Toutes visibles dans la même application.</div></div>
+        <div class="faq-item" onclick="faq(this)"><button class="faq-del" onclick="deleteFaq(event,this)">✕</button><div class="faq-q"><span>Compatible macOS ?</span><span>+</span></div><div class="faq-a">Non, Windows 10/11 uniquement pour le logiciel. L'app mobile est Android et iOS.</div></div>
+        <div class="faq-item" onclick="faq(this)"><button class="faq-del" onclick="deleteFaq(event,this)">✕</button><div class="faq-q"><span>Quel logiciel photo compatible ?</span><span>+</span></div><div class="faq-a">dslrBooth, Sparkbooth, Breeze — tout logiciel qui enregistre en JPG/PNG dans un dossier Windows.</div></div>
+        <div class="faq-item" onclick="faq(this)"><button class="faq-del" onclick="deleteFaq(event,this)">✕</button><div class="faq-q"><span>Plusieurs bornes possibles ?</span><span>+</span></div><div class="faq-a">Oui ! Chaque borne supplémentaire = 6€/mois. Toutes visibles dans la même application.</div></div>
       </div>
     </div>
   </div>
@@ -645,23 +614,30 @@ footer a{color:var(--goldd);text-decoration:none;}
     <p class="sdesc">Réponse garantie sous 24h ouvrées.</p>
     <div class="cgrid">
       <div>
-        <div class="cinfo-item"><div class="c-ico">✉️</div><div><div class="c-label">Email</div><div class="c-val" id="cemail">Via formulaire uniquement</div></div></div>
+        <div class="cinfo-item"><div class="c-ico">✉️</div><div><div class="c-label">Email</div><div class="c-val" id="cemail">Via formulaire</div></div></div>
         <div class="cinfo-item"><div class="c-ico">📍</div><div><div class="c-label">Localisation</div><div class="c-val" id="cloc">France</div></div></div>
         <div class="cinfo-item"><div class="c-ico">⏰</div><div><div class="c-label">Disponibilité</div><div class="c-val" id="chours">Lun–Ven, 9h–18h</div></div></div>
         <div class="cinfo-item"><div class="c-ico">⚡</div><div><div class="c-label">Réponse</div><div class="c-val">Sous 24h ouvrées</div></div></div>
-        <div style="margin-top:20px;display:flex;gap:12px;">
-          <a id="fbLinkContact" href="#" class="social-btn" target="_blank" style="font-size:20px;font-weight:700;">f</a>
-          <a id="igLinkContact" href="#" class="social-btn" target="_blank" style="font-size:18px;">📸</a>
+        <div style="margin-top:20px;display:flex;gap:10px;">
+          <a id="fbContact" href="#" class="social-btn" target="_blank" style="width:40px;height:40px;font-size:18px;">f</a>
+          <a id="igContact" href="#" class="social-btn" target="_blank" style="width:40px;height:40px;font-size:16px;">📸</a>
         </div>
       </div>
       <div class="cform">
         <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin-bottom:20px;letter-spacing:1px;">ENVOYER UN MESSAGE</div>
-        <form onsubmit="sendForm(event)">
-          <div class="r2"><div class="fg"><label>Prénom</label><input placeholder="Jean" required></div><div class="fg"><label>Nom</label><input placeholder="Dupont" required></div></div>
-          <div class="fg"><label>Email</label><input type="email" placeholder="jean@exemple.fr" required></div>
-          <div class="fg"><label>Sujet</label><select style="background:rgba(255,255,255,.03);border:1px solid rgba(212,168,67,.13);border-radius:9px;padding:11px 15px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:13px;width:100%;outline:none;"><option>Support technique</option><option>Question abonnement</option><option>Demande de démo</option><option>Autre</option></select></div>
-          <div class="fg"><label>Message</label><textarea placeholder="Votre message..." required></textarea></div>
-          <button type="submit" class="btn-p" style="width:100%;justify-content:center;">✈ Envoyer</button>
+        <form id="contactForm" onsubmit="sendContactForm(event)">
+          <div class="r2">
+            <div class="fg"><label>Prénom</label><input name="prenom" placeholder="Jean" required></div>
+            <div class="fg"><label>Nom</label><input name="nom" placeholder="Dupont" required></div>
+          </div>
+          <div class="fg"><label>Email</label><input type="email" name="email" placeholder="jean@exemple.fr" required></div>
+          <div class="fg"><label>Sujet</label>
+            <select name="sujet" style="background:rgba(255,255,255,.03);border:1px solid rgba(212,168,67,.13);border-radius:9px;padding:11px 15px;color:var(--white);font-family:'Rajdhani',sans-serif;font-size:13px;width:100%;outline:none;">
+              <option>Support technique</option><option>Question abonnement</option><option>Demande de démo</option><option>Autre</option>
+            </select>
+          </div>
+          <div class="fg"><label>Message</label><textarea name="message" placeholder="Votre message..." required></textarea></div>
+          <button type="submit" class="btn-p" style="width:100%;justify-content:center;" id="sendBtn">✈ Envoyer</button>
         </form>
       </div>
     </div>
@@ -670,11 +646,11 @@ footer a{color:var(--goldd);text-decoration:none;}
 
 <footer>
   <div class="footer-social">
-    <a id="fbFooter" href="#" target="_blank" title="Facebook" style="font-size:18px;font-weight:700;">f</a>
-    <a id="igFooter" href="#" target="_blank" title="Instagram" style="font-size:16px;">📸</a>
+    <a id="fbFooter" href="#" target="_blank">f</a>
+    <a id="igFooter" href="#" target="_blank">📸</a>
   </div>
   <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin-bottom:8px;letter-spacing:2px;">PILOT PHOTOBOOTH</div>
-  <p id="footerText">© 2026 Pilot Photobooth · Tous droits réservés · <a href="#">CGU</a> · <a href="#">Mentions légales</a></p>
+  <p id="footerText">© 2026 Pilot Photobooth · Tous droits réservés · <a href="#">CGU</a></p>
 </footer>
 
 <!-- MODAL COMPTE -->
@@ -682,7 +658,7 @@ footer a{color:var(--goldd);text-decoration:none;}
   <div class="modal">
     <div style="text-align:center;font-size:32px;margin-bottom:14px;">👤</div>
     <h2>Mon Compte</h2>
-    <p>Compte partagé avec l'application mobile</p>
+    <p>Partagé avec l'application mobile</p>
     <div id="loginForm">
       <div class="fg"><label>Email</label><input type="email" id="uEmail"></div>
       <div class="fg"><label>Mot de passe</label><input type="password" id="uPwd"></div>
@@ -709,54 +685,101 @@ footer a{color:var(--goldd);text-decoration:none;}
 <div class="toast" id="toast"></div>
 
 <script>
+// ══ CONFIG ══════════════════════════════════════════════════
 const ADMIN_EMAIL = 'alexander.lepennec@outlook.fr';
 const ADMIN_PWD   = 'PilotAdmin2026!';
+const EJS_PUBLIC  = 'Z2D_cEmNRcexxJzWx';
+const EJS_SERVICE = 'service_8udpe0d';
+const EJS_TEMPLATE = 'template_zjf4ufe';
 
-// ── Helpers UI ───────────────────────────────────────────────
+emailjs.init(EJS_PUBLIC);
+
+// ══ LAYOUT tutoriel courant ══════════════════════════════════
+let currentLayout = 'full';
+let editHistory = [], editHistIdx = -1;
+let isFloating = false;
+let _lastRubrique = null;
+
+// ══ UI BASE ══════════════════════════════════════════════════
 function go(id) {
   document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
 }
+
 function faq(el) {
   const a = el.querySelector('.faq-a'), s = el.querySelector('.faq-q span:last-child');
   const o = a.style.display === 'block';
   a.style.display = o ? 'none' : 'block';
   s.textContent = o ? '+' : '−';
 }
-window.showToast = function(msg, type='ok') {
+
+function toggleRub(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+window.toast = function(msg, type='ok') {
   const t = document.getElementById('toast');
   t.textContent = (type==='ok' ? '✅ ' : '❌ ') + msg;
   t.className = 'toast show ' + type;
   setTimeout(() => t.classList.remove('show'), 4000);
 };
+
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('click', e => {
   ['compteModal'].forEach(id => { const el = document.getElementById(id); if(e.target===el) el.classList.remove('open'); });
 });
+
 function dl(type, e) {
-  const btn = type === 'win' ? document.getElementById('winDlBtn') : document.getElementById('mobileDlBtn');
+  const btn = document.getElementById(type==='win' ? 'winDlBtn' : 'mobileDlBtn');
   if (!btn || btn.getAttribute('href') === '#') {
-    e.preventDefault();
-    window.showToast('Lien de téléchargement non configuré', 'err');
+    e.preventDefault(); window.toast('Lien non configuré', 'err');
   }
 }
-function sendForm(e) { e.preventDefault(); window.showToast('Message envoyé ! Réponse sous 24h ✈'); e.target.reset(); }
 
-// ── Auth ─────────────────────────────────────────────────────
+// ══ FORMULAIRE CONTACT — EmailJS ═════════════════════════════
+async function sendContactForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById('sendBtn');
+  btn.textContent = '⏳ Envoi...';
+  btn.disabled = true;
+
+  const form = document.getElementById('contactForm');
+  const data = {
+    from_name:  form.prenom.value + ' ' + form.nom.value,
+    from_email: form.email.value,
+    sujet:      form.sujet.value,
+    message:    form.message.value,
+    to_email:   'alexander.lepennec@outlook.fr'
+  };
+
+  try {
+    await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, data);
+    window.toast('Message envoyé ! Réponse sous 24h ✈');
+    form.reset();
+  } catch(err) {
+    window.toast('Erreur envoi — vérifiez la config EmailJS', 'err');
+    console.error(err);
+  }
+
+  btn.textContent = '✈ Envoyer';
+  btn.disabled = false;
+}
+
+// ══ AUTH ═════════════════════════════════════════════════════
 function showReg()   { document.getElementById('loginForm').style.display='none'; document.getElementById('regForm').style.display='block'; }
 function showLogin() { document.getElementById('regForm').style.display='none'; document.getElementById('loginForm').style.display='block'; }
 
 async function doSignIn() {
-  const email = document.getElementById('uEmail').value.trim();
-  const pwd   = document.getElementById('uPwd').value;
-  if (!window.firebaseSignIn) { window.showToast('Firebase non initialisé','err'); return; }
-  const res = await window.firebaseSignIn(email, pwd);
-  if (res.success) {
+  const res = await window.fbSignIn(document.getElementById('uEmail').value.trim(), document.getElementById('uPwd').value);
+  if (res.ok) {
     closeModal('compteModal');
-    window.showToast('Bienvenue ' + res.prenom + ' ! 👋');
-    showLoggedState(res.prenom);
+    window.toast('Connecté ! 👋');
+    document.getElementById('loggedForm').style.display='block';
+    document.getElementById('loginForm').style.display='none';
   } else {
     document.getElementById('loginErr').textContent = 'Email ou mot de passe incorrect';
     document.getElementById('loginErr').style.display = 'block';
@@ -764,40 +787,29 @@ async function doSignIn() {
 }
 
 async function doSignUp() {
-  const prenom = document.getElementById('rPrenom').value.trim();
-  const email  = document.getElementById('rEmail').value.trim();
-  const pwd    = document.getElementById('rPwd').value;
-  if (!prenom || !email || !pwd) { window.showToast('Remplissez tous les champs','err'); return; }
-  const res = await window.firebaseSignUp(email, pwd, prenom);
-  if (res.success) {
+  const p = document.getElementById('rPrenom').value.trim();
+  const e = document.getElementById('rEmail').value.trim();
+  const pw = document.getElementById('rPwd').value;
+  if (!p||!e||!pw) { window.toast('Remplissez tous les champs','err'); return; }
+  const res = await window.fbSignUp(e, pw, p);
+  if (res.ok) {
     closeModal('compteModal');
-    window.showToast('Compte créé ! Bienvenue ' + prenom + ' 👋');
-    showLoggedState(prenom);
+    window.toast('Bienvenue ' + p + ' 👋');
   } else {
-    document.getElementById('regErr').textContent = res.error;
+    document.getElementById('regErr').textContent = res.err;
     document.getElementById('regErr').style.display = 'block';
   }
 }
 
 async function doSignOut() {
-  await window.firebaseSignOut();
-  document.getElementById('loggedForm').style.display = 'none';
-  document.getElementById('loginForm').style.display = 'block';
+  await window.fbSignOut();
+  document.getElementById('loggedForm').style.display='none';
+  document.getElementById('loginForm').style.display='block';
   closeModal('compteModal');
-  window.showToast('Déconnecté');
+  window.toast('Déconnecté');
 }
 
-function showLoggedState(prenom) {
-  document.getElementById('loginForm').style.display = 'none';
-  document.getElementById('regForm').style.display = 'none';
-  document.getElementById('loggedForm').style.display = 'block';
-  document.getElementById('loggedMsg').textContent = '✅ Connecté en tant que ' + prenom;
-  document.getElementById('compteBtn').textContent = '👤 ' + prenom;
-}
-
-// ── Admin ─────────────────────────────────────────────────────
-let editHistory = [], editHistIdx = -1;
-
+// ══ ADMIN ═════════════════════════════════════════════════════
 function doAdminLogin() {
   const email = document.getElementById('alEmail').value.trim();
   const pwd   = document.getElementById('alPwd').value;
@@ -805,7 +817,7 @@ function doAdminLogin() {
     sessionStorage.setItem('pilotAdmin', '1');
     document.getElementById('adminLogin').classList.remove('show');
     history.replaceState(null, '', window.location.pathname + '?admin=1');
-    window.startEditor();
+    startEditor();
   } else {
     document.getElementById('alErr').style.display = 'block';
     document.getElementById('alPwd').value = '';
@@ -817,22 +829,75 @@ function closeAdminLogin() {
   history.replaceState(null, '', window.location.pathname);
 }
 
-window.startEditor = function() {
+function startEditor() {
   document.getElementById('editBar').classList.add('on');
-  window.showToast('Éditeur activé ! Bienvenue Alexander 👋');
+  document.body.classList.add('edit-active');
+  window.toast('Éditeur activé ! Bienvenue Alexander 👋');
   document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undoEdit(); }
-    if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redoEdit(); }
+    if (e.ctrlKey && e.key==='z') { e.preventDefault(); undoEdit(); }
+    if (e.ctrlKey && e.key==='y') { e.preventDefault(); redoEdit(); }
   });
-};
+  initDrag();
+}
 
 function closeEditor() {
   document.getElementById('editBar').classList.remove('on');
   document.getElementById('editPanel').classList.remove('open');
-  window.showToast('Éditeur fermé');
+  document.body.classList.remove('edit-active');
+  window.toast('Éditeur fermé');
 }
 
-const ebMap = { textes:'eb1', couleurs:'eb2', medias:'eb3', liens:'eb4', ajouter:'eb5' };
+// ══ DÉPLACER LA BARRE ═════════════════════════════════════════
+function toggleFloat() {
+  isFloating = !isFloating;
+  const bar = document.getElementById('editBar');
+  const panel = document.getElementById('editPanel');
+  bar.classList.toggle('floating', isFloating);
+  if (isFloating) {
+    panel.style.bottom = 'auto';
+    panel.style.top = '50%';
+    panel.style.transform = 'translateY(-50%)';
+    panel.style.borderRadius = '14px';
+  } else {
+    panel.style.bottom = '52px';
+    panel.style.top = '';
+    panel.style.transform = '';
+    panel.style.borderRadius = '';
+  }
+}
+
+// Drag déplacement barre
+function initDrag() {
+  const bar = document.getElementById('editBar');
+  const handle = document.getElementById('ebDrag');
+  let dragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+  handle.addEventListener('mousedown', e => {
+    if (!isFloating) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    const rect = bar.getBoundingClientRect();
+    origLeft = rect.left; origTop = rect.top;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    bar.style.left = (origLeft + dx) + 'px';
+    bar.style.top  = (origTop + dy) + 'px';
+    bar.style.transform = 'none';
+    bar.style.right = 'auto';
+    bar.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => { dragging = false; });
+}
+
+// ══ PANNEAU ══════════════════════════════════════════════════
+const ebMap = { textes:'eb1', couleurs:'eb2', medias:'eb3', tuto:'eb4', liens:'eb5', ajouter:'eb6' };
+
 function togglePanel(tab) {
   const panel = document.getElementById('editPanel');
   const btn   = document.getElementById(ebMap[tab]);
@@ -856,238 +921,295 @@ function epTab(name, el) {
   if (el)  el.classList.add('active');
 }
 
-function setVar(v, val) { document.documentElement.style.setProperty(v, val); }
+// ══ LIVE EDIT ════════════════════════════════════════════════
+function live(id, val) { const e = document.getElementById(id); if(e) e.textContent = val; }
+function setV(v, val)  { document.documentElement.style.setProperty(v, val); }
 
 function applyTheme(m, d, l, sw) {
-  setVar('--gold', m); setVar('--goldd', d); setVar('--goldf', l);
+  setV('--gold', m); setV('--goldd', d); setV('--goldf', l);
   document.querySelectorAll('.csw').forEach(s => s.classList.remove('sel'));
   sw.classList.add('sel');
 }
 
-function previewHeroBg(url) {
+function applyHeroBg(url) {
   const h = document.getElementById('home');
   if (url && url.startsWith('http')) {
-    h.style.backgroundImage = `url('${url}')`;
-    h.style.backgroundSize = 'cover';
-    h.style.backgroundPosition = 'center';
+    h.style.backgroundImage = `url('${url}')`; h.style.backgroundSize='cover'; h.style.backgroundPosition='center';
   }
 }
 
-// ── Upload logo ──────────────────────────────────────────────
+// ══ UPLOAD ══════════════════════════════════════════════════
+function setProgress(pbId, pfId, pct) {
+  const pb = document.getElementById(pbId); const pf = document.getElementById(pfId);
+  pb.style.display = 'block'; pf.style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => pb.style.display='none', 1000);
+}
+
 async function uploadLogo(input) {
   const file = input.files[0]; if (!file) return;
-  showProgress('logoProg', 'logoProgFill', 30);
-  const url = await window.uploadImage(file, 'logos');
-  showProgress('logoProg', 'logoProgFill', 100);
-  if (url) {
-    document.getElementById('logoPreview').style.display = 'block';
-    document.getElementById('logoPreviewImg').src = url;
+  setProgress('pb_logo','pf_logo',30);
+  const res = await window.uploadFile(file, 'logos', p => setProgress('pb_logo','pf_logo',p));
+  if (res) {
     const logo = document.getElementById('navLogo');
-    logo.src = url; logo.style.display = 'block';
-    document.getElementById('navIco').style.display = 'none';
-    await window.saveToFirebase({ logoUrl: url });
-    window.showToast('Logo mis à jour pour tous !');
+    logo.src = res.url; logo.style.display='block';
+    document.getElementById('navIco').style.display='none';
+    await window.saveToFirebase({ logoUrl: res.url });
   }
-  setTimeout(() => document.getElementById('logoProg').style.display = 'none', 1000);
 }
 
-// ── Upload image hero ────────────────────────────────────────
-async function uploadHeroBg(input) {
+async function uploadHero(input) {
   const file = input.files[0]; if (!file) return;
-  showProgress('heroProg', 'heroProgFill', 40);
-  const url = await window.uploadImage(file, 'hero');
-  showProgress('heroProg', 'heroProgFill', 100);
-  if (url) {
-    previewHeroBg(url);
-    await window.saveToFirebase({ heroBg: url });
-    window.showToast('Image hero mise à jour !');
-  }
-  setTimeout(() => document.getElementById('heroProg').style.display = 'none', 1000);
+  setProgress('pb_hero','pf_hero',30);
+  const res = await window.uploadFile(file, 'hero', p => setProgress('pb_hero','pf_hero',p));
+  if (res) { applyHeroBg(res.url); await window.saveToFirebase({ heroBg: res.url }); }
 }
 
-// ── Ajouter image dans tutoriel ──────────────────────────────
-async function addTutImage(input) {
-  const file = input.files[0]; if (!file) return;
-  showProgress('tutProg', 'tutProgFill', 40);
-  const url = await window.uploadImage(file, 'tutorial');
-  showProgress('tutProg', 'tutProgFill', 100);
-  if (url) {
-    const div = document.createElement('div');
-    div.className = 'tut-media';
-    div.innerHTML = `<img src="${url}" alt="Tutoriel">`;
-    document.getElementById('tutorialMedias').appendChild(div);
-    saveTutorialContent();
-    window.showToast('Image ajoutée au tutoriel !');
-  }
-  setTimeout(() => document.getElementById('tutProg').style.display = 'none', 1000);
+// ══ TUTORIEL — RUBRIQUES ════════════════════════════════════
+function setLayout(type, btn) {
+  currentLayout = type;
+  document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
 }
 
-// ── Ajouter vidéo dans tutoriel ──────────────────────────────
-function addTutVideo() {
-  const url = document.getElementById('e_vidUrl').value.trim();
-  if (!url) { window.showToast('Entrez une URL YouTube embed','err'); return; }
+function showVidInput() {
+  const box = document.getElementById('vidInputBox');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+function getLastRubriqueBody() {
+  const rubriques = document.querySelectorAll('.tut-rubrique-body');
+  return rubriques[rubriques.length - 1];
+}
+
+function addRubrique() {
+  const title = document.getElementById('rubTitle').value.trim();
+  const icon  = document.getElementById('rubIcon').value || '📋';
+  if (!title) { window.toast('Entrez un titre de rubrique','err'); return; }
+
+  const id = 'rub_' + Date.now();
   const div = document.createElement('div');
-  div.className = 'tut-media';
-  div.innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
-  document.getElementById('tutorialMedias').appendChild(div);
-  document.getElementById('e_vidUrl').value = '';
-  document.getElementById('tutVidInput').style.display = 'none';
-  saveTutorialContent();
-  window.showToast('Vidéo ajoutée au tutoriel !');
+  div.className = 'tut-rubrique';
+  div.innerHTML = `
+    <div class="tut-rubrique-header open" onclick="toggleRub(this)">
+      <span style="font-size:20px;">${icon}</span>
+      <h3>${title}</h3>
+      <span class="toggle">▼</span>
+    </div>
+    <div class="tut-rubrique-body open" id="${id}"></div>
+  `;
+  document.getElementById('tutorialRubriques').appendChild(div);
+  _lastRubrique = id;
+  document.getElementById('rubTitle').value = '';
+  document.getElementById('rubIcon').value  = '';
+  saveTutorial();
+  window.toast('Rubrique créée !');
 }
 
-// ── Ajouter PDF dans tutoriel ────────────────────────────────
-async function addTutPdf(input) {
+async function addTutMedia(input, type) {
   const file = input.files[0]; if (!file) return;
-  showProgress('tutProg', 'tutProgFill', 50);
-  const url = await window.uploadImage(file, 'pdfs');
-  showProgress('tutProg', 'tutProgFill', 100);
-  if (url) {
-    const div = document.createElement('div');
-    div.className = 'tut-media';
-    div.innerHTML = `<embed src="${url}" type="application/pdf">`;
-    document.getElementById('tutorialMedias').appendChild(div);
-    saveTutorialContent();
-    window.showToast('PDF ajouté au tutoriel !');
-  }
-  setTimeout(() => document.getElementById('tutProg').style.display = 'none', 1000);
+  setProgress('pb_tut','pf_tut',20);
+  const folder = type === 'pdf' ? 'pdfs' : 'tutorial';
+  const res = await window.uploadFile(file, folder, p => setProgress('pb_tut','pf_tut',p));
+  if (!res) return;
+
+  const text       = document.getElementById('tutText').value.trim();
+  const blockTitle = document.getElementById('tutBlockTitle').value.trim();
+  const layout     = currentLayout;
+
+  const body = getLastRubriqueBody();
+  if (!body) { window.toast('Créez d\'abord une rubrique !','err'); return; }
+
+  const bloc = document.createElement('div');
+  bloc.className = `tut-bloc layout-${layout}`;
+  bloc.dataset.path = res.path;
+
+  let mediaHtml = '';
+  if (type === 'img')  mediaHtml = `<img src="${res.url}" alt="">`;
+  if (type === 'pdf')  mediaHtml = `<embed src="${res.url}" type="application/pdf">`;
+
+  const textHtml = (text || blockTitle) ? `
+    <div class="tut-bloc-text">
+      ${blockTitle ? `<h4>${blockTitle}</h4>` : ''}
+      ${text ? `<p>${text}</p>` : ''}
+    </div>` : '';
+
+  bloc.innerHTML = `<button class="del-btn" onclick="deleteTutBloc(this)">✕</button>${mediaHtml}${textHtml}`;
+  body.appendChild(bloc);
+
+  document.getElementById('tutText').value = '';
+  document.getElementById('tutBlockTitle').value = '';
+  saveTutorial();
+  window.toast('Média ajouté !');
 }
 
-function showProgress(barId, fillId, pct) {
-  const bar = document.getElementById(barId);
-  const fill = document.getElementById(fillId);
-  bar.style.display = 'block';
-  fill.style.width = pct + '%';
+function addTutVideo() {
+  const url = document.getElementById('vidUrl').value.trim();
+  if (!url) { window.toast('Entrez une URL','err'); return; }
+  const text  = document.getElementById('tutText').value.trim();
+  const btitle = document.getElementById('tutBlockTitle').value.trim();
+  const layout = currentLayout;
+
+  const body = getLastRubriqueBody();
+  if (!body) { window.toast('Créez d\'abord une rubrique !','err'); return; }
+
+  const bloc = document.createElement('div');
+  bloc.className = `tut-bloc layout-${layout}`;
+  bloc.innerHTML = `
+    <button class="del-btn" onclick="deleteTutBloc(this)">✕</button>
+    <iframe src="${url}" allowfullscreen></iframe>
+    ${(text||btitle) ? `<div class="tut-bloc-text">${btitle?`<h4>${btitle}</h4>`:''} ${text?`<p>${text}</p>`:''}</div>` : ''}
+  `;
+  body.appendChild(bloc);
+  document.getElementById('vidUrl').value = '';
+  document.getElementById('tutText').value = '';
+  document.getElementById('tutBlockTitle').value = '';
+  document.getElementById('vidInputBox').style.display = 'none';
+  saveTutorial();
+  window.toast('Vidéo ajoutée !');
 }
 
-// ── Ajouter éléments ─────────────────────────────────────────
+function deleteTutBloc(btn) {
+  const bloc = btn.closest('.tut-bloc');
+  const path = bloc.dataset.path;
+  if (path) window.deleteStorageFile(path);
+  bloc.remove();
+  saveTutorial();
+  window.toast('Bloc supprimé');
+}
+
+function saveTutorial() {
+  const html = document.getElementById('tutorialRubriques').innerHTML;
+  window.saveToFirebase({ tutHTML: html });
+}
+
+// ══ FAQ ══════════════════════════════════════════════════════
+function deleteFaq(e, btn) {
+  e.stopPropagation();
+  btn.closest('.faq-item').remove();
+  saveAll();
+}
+
+// ══ AJOUTER ÉLÉMENTS ═════════════════════════════════════════
 function addCard() {
   const i = document.getElementById('nCIco').value || '⭐';
   const t = document.getElementById('nCTitle').value;
   const d = document.getElementById('nCDesc').value;
-  if (!t || !d) { window.showToast('Remplissez titre et description','err'); return; }
-  const g = document.getElementById('featuresGrid');
+  if (!t||!d) { window.toast('Remplissez titre et description','err'); return; }
   const c = document.createElement('div'); c.className = 'card';
   c.innerHTML = `<div class="card-ico">${i}</div><h3>${t}</h3><p>${d}</p>`;
-  g.appendChild(c);
+  document.getElementById('featuresGrid').appendChild(c);
   document.getElementById('nCIco').value = '';
   document.getElementById('nCTitle').value = '';
   document.getElementById('nCDesc').value = '';
   saveAll();
 }
 
-function addStep() {
-  const t = document.getElementById('nSTitle').value;
-  const d = document.getElementById('nSDesc').value;
-  if (!t || !d) { window.showToast('Remplissez tous les champs','err'); return; }
-  const s = document.getElementById('tutorialSteps');
-  const n = s.querySelectorAll('.step').length + 1;
-  const div = document.createElement('div'); div.className = 'step';
-  div.innerHTML = `<div class="step-n">${n}</div><div class="step-c"><h3>${t}</h3><p>${d}</p></div>`;
-  s.appendChild(div);
-  document.getElementById('nSTitle').value = '';
-  document.getElementById('nSDesc').value = '';
-  saveTutorialContent();
-  window.showToast('Étape ajoutée !');
-}
-
 function addFaq() {
   const q = document.getElementById('nFQ').value;
   const a = document.getElementById('nFA').value;
-  if (!q || !a) { window.showToast('Remplissez question et réponse','err'); return; }
-  const l = document.getElementById('faqList');
+  if (!q||!a) { window.toast('Remplissez question et réponse','err'); return; }
   const div = document.createElement('div'); div.className = 'faq-item';
-  div.setAttribute('onclick', 'faq(this)');
-  div.innerHTML = `<div class="faq-q"><span>${q}</span><span>+</span></div><div class="faq-a">${a}</div>`;
-  l.appendChild(div);
+  div.setAttribute('onclick','faq(this)');
+  div.innerHTML = `<button class="faq-del" onclick="deleteFaq(event,this)">✕</button><div class="faq-q"><span>${q}</span><span>+</span></div><div class="faq-a">${a}</div>`;
+  document.getElementById('faqList').appendChild(div);
   document.getElementById('nFQ').value = '';
   document.getElementById('nFA').value = '';
   saveAll();
 }
 
-// ── Sauvegarder tutoriel ─────────────────────────────────────
-async function saveTutorialContent() {
-  const html = document.getElementById('tutorialContent').innerHTML;
-  await window.saveToFirebase({ tutHTML: html });
-}
-
-// ── Sauvegarder couleurs ─────────────────────────────────────
-async function saveColors() {
-  const data = {
-    colorMain:  document.getElementById('e_cm').value,
-    colorDark:  document.getElementById('e_cd').value,
-    colorBg:    document.getElementById('e_bg').value,
-    colorCard:  document.getElementById('e_cc').value,
-  };
-  await window.saveToFirebase(data);
-}
-
-// ── Sauvegarder tout ─────────────────────────────────────────
+// ══ SAUVEGARDER TOUT ═════════════════════════════════════════
 async function saveAll() {
-  if (!window.saveToFirebase) { window.showToast('Firebase non prêt, réessayez','err'); return; }
-
-  const get = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+  if (!window.saveToFirebase) { window.toast('Firebase non prêt','err'); return; }
+  const g = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
 
   const data = {
-    heroTitle: get('e_heroTitle'), heroSub: get('e_heroSub'), heroBadge: get('e_heroBadge'),
-    stat1n: get('e_s1n'), stat1l: get('e_s1l'),
-    stat2n: get('e_s2n'), stat2l: get('e_s2l'),
-    stat3n: get('e_s3n'), stat3l: get('e_s3l'),
-    stat4n: get('e_s4n'), stat4l: get('e_s4l'),
-    cemail: get('e_cemail'), cloc: get('e_cloc'), chours: get('e_chours'),
-    winUrl: get('e_winUrl'), mobileUrl: get('e_mobileUrl'),
-    facebook: get('e_fb'), instagram: get('e_ig'),
-    logoEmoji: get('e_logoE'),
-    heroBg: get('e_heroBg'),
-    footerText: get('e_footerText'),
-    colorMain: get('e_cm'), colorDark: get('e_cd'),
-    colorBg: get('e_bg'), colorCard: get('e_cc'),
+    heroTitle: g('e_heroTitle'), heroSub: g('e_heroSub'), heroBadge: g('e_heroBadge'),
+    stat1n: g('e_s1n'), stat1l: g('e_s1l'), stat2n: g('e_s2n'), stat2l: g('e_s2l'),
+    stat3n: g('e_s3n'), stat3l: g('e_s3l'), stat4n: g('e_s4n'), stat4l: g('e_s4l'),
+    cemail: g('e_cemail'), cloc: g('e_cloc'), chours: g('e_chours'),
+    winUrl: g('e_winUrl'), mobileUrl: g('e_mobileUrl'),
+    facebook: g('e_fb'), instagram: g('e_ig'),
+    logoEmoji: g('e_logoE'), heroBg: g('e_heroBg'),
+    footerText: g('e_footerText'),
+    colorMain: g('e_cm'), colorBg: g('e_bg'), colorCard: g('e_cc'),
     featHTML:  document.getElementById('featuresGrid').innerHTML,
-    tutHTML:   document.getElementById('tutorialContent').innerHTML,
+    tutHTML:   document.getElementById('tutorialRubriques').innerHTML,
     faqHTML:   document.getElementById('faqList').innerHTML,
   };
-
-  // Nettoyer les undefined
-  Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
-
-  // Appliquer immédiatement les réseaux sociaux
-  updateSocialLinks(data.facebook, data.instagram);
-
+  Object.keys(data).forEach(k => (data[k]===undefined || data[k]==='') && delete data[k]);
+  updateSocials(data.facebook, data.instagram);
   saveEditHistory(data);
   await window.saveToFirebase(data);
 }
 
-function updateSocialLinks(fb, ig) {
-  const links = ['fbLink','fbFooter','fbLinkContact'];
-  const igLinks = ['igLink','igFooter','igLinkContact'];
-  links.forEach(id => { const el = document.getElementById(id); if(el && fb) { el.href=fb; el.style.display='inline-flex'; } });
-  igLinks.forEach(id => { const el = document.getElementById(id); if(el && ig) { el.href=ig; el.style.display='inline-flex'; } });
+function updateSocials(fb, ig) {
+  ['fbNav','fbContact','fbFooter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && fb) { el.href=fb; el.style.display='inline-flex'; }
+  });
+  ['igNav','igContact','igFooter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && ig) { el.href=ig; el.style.display='inline-flex'; }
+  });
 }
 
-// ── Undo / Redo ──────────────────────────────────────────────
+// ══ UNDO / REDO ══════════════════════════════════════════════
 function saveEditHistory(data) {
   editHistory = editHistory.slice(0, editHistIdx + 1);
   editHistory.push(JSON.stringify(data));
   editHistIdx = editHistory.length - 1;
 }
-
 async function undoEdit() {
-  if (editHistIdx > 0) {
-    editHistIdx--;
-    const data = JSON.parse(editHistory[editHistIdx]);
-    await window.saveToFirebase(data);
-    window.showToast('Annulé ↩');
-  }
+  if (editHistIdx > 0) { editHistIdx--; await window.saveToFirebase(JSON.parse(editHistory[editHistIdx])); window.toast('Annulé ↩'); }
+}
+async function redoEdit() {
+  if (editHistIdx < editHistory.length-1) { editHistIdx++; await window.saveToFirebase(JSON.parse(editHistory[editHistIdx])); window.toast('Rétabli ↪'); }
 }
 
-async function redoEdit() {
-  if (editHistIdx < editHistory.length - 1) {
-    editHistIdx++;
-    const data = JSON.parse(editHistory[editHistIdx]);
-    await window.saveToFirebase(data);
-    window.showToast('Rétabli ↪');
+// ══ APPLIQUER DONNÉES FIREBASE ══════════════════════════════
+window.applySiteData = function(d) {
+  const st = (id, v) => { const e=document.getElementById(id); if(e&&v) e.textContent=v; };
+  st('heroTitle',d.heroTitle); st('heroSub',d.heroSub); st('heroBadge',d.heroBadge);
+  st('stat1n',d.stat1n); st('stat1l',d.stat1l); st('stat2n',d.stat2n); st('stat2l',d.stat2l);
+  st('stat3n',d.stat3n); st('stat3l',d.stat3l); st('stat4n',d.stat4n); st('stat4l',d.stat4l);
+  st('cemail',d.cemail); st('cloc',d.cloc); st('chours',d.chours);
+  st('navIco',d.logoEmoji); st('footerText',d.footerText);
+
+  if (d.logoUrl) {
+    const logo = document.getElementById('navLogo');
+    logo.src=d.logoUrl; logo.style.display='block';
+    document.getElementById('navIco').style.display='none';
   }
-}
+  if (d.winUrl)    { const b=document.getElementById('winDlBtn');    if(b) b.href=d.winUrl; }
+  if (d.mobileUrl) { const b=document.getElementById('mobileDlBtn'); if(b) b.href=d.mobileUrl; }
+  if (d.facebook || d.instagram) updateSocials(d.facebook, d.instagram);
+  if (d.colorMain) { setV('--gold',d.colorMain); setV('--goldd',d.colorDark||'#8B6914'); setV('--goldf',d.colorLight||'#F5D98B'); }
+  if (d.colorBg)   setV('--black', d.colorBg);
+  if (d.colorCard) setV('--card',  d.colorCard);
+  if (d.heroBg)    applyHeroBg(d.heroBg);
+  if (d.featHTML)  { const g=document.getElementById('featuresGrid'); if(g) g.innerHTML=d.featHTML; }
+  if (d.tutHTML)   { const t=document.getElementById('tutorialRubriques'); if(t) t.innerHTML=d.tutHTML; }
+  if (d.faqHTML)   { const f=document.getElementById('faqList'); if(f) f.innerHTML=d.faqHTML; }
+
+  // Remplir champs éditeur
+  const fill = (id, v) => { const e=document.getElementById(id); if(e&&v) e.value=v; };
+  fill('e_heroTitle',d.heroTitle); fill('e_heroSub',d.heroSub); fill('e_heroBadge',d.heroBadge);
+  fill('e_s1n',d.stat1n); fill('e_s1l',d.stat1l); fill('e_s2n',d.stat2n); fill('e_s2l',d.stat2l);
+  fill('e_s3n',d.stat3n); fill('e_s3l',d.stat3l); fill('e_s4n',d.stat4n); fill('e_s4l',d.stat4l);
+  fill('e_cemail',d.cemail); fill('e_cloc',d.cloc); fill('e_chours',d.chours);
+  fill('e_winUrl',d.winUrl); fill('e_mobileUrl',d.mobileUrl);
+  fill('e_fb',d.facebook); fill('e_ig',d.instagram);
+  fill('e_logoE',d.logoEmoji); fill('e_heroBg',d.heroBg);
+};
+
+// ══ INIT ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('admin') === '1') {
+    if (sessionStorage.getItem('pilotAdmin') === '1') startEditor();
+    else document.getElementById('adminLogin').classList.add('show');
+  }
+});
 </script>
 </body>
 </html>
