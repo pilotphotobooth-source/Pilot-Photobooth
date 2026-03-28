@@ -29,9 +29,24 @@ const stor = getStorage(app);
 const auth = getAuth(app);
 
 // ── Écoute temps réel ─────────────────────────────────────────
-onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
-  if (snap.exists()) window.applySiteData(snap.data());
-});
+// On attend que applySiteData soit défini par le script principal
+function startFirebaseListeners() {
+  onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
+    if (snap.exists()) {
+      if (typeof window.applySiteData === 'function') {
+        window.applySiteData(snap.data());
+      } else {
+        // Réessayer dans 200ms si pas encore prêt
+        setTimeout(() => {
+          if (typeof window.applySiteData === 'function') {
+            window.applySiteData(snap.data());
+          }
+        }, 200);
+      }
+    }
+  });
+}
+window._startFirebaseListeners = startFirebaseListeners;
 
 // ── Sauvegarder ───────────────────────────────────────────────
 window.saveToFirebase = async (data) => {
@@ -878,7 +893,7 @@ function toggleClickEdit() {
   document.getElementById('ebClick').classList.toggle('active', isOn);
 
   if (isOn) {
-    window.toast('Cliquez sur n'importe quel texte pour le modifier !');
+    window.toast("Cliquez sur n'importe quel texte pour le modifier !");
     // Rendre tous les éléments avec data-editable éditables
     document.querySelectorAll('[data-editable]').forEach(el => {
       el.contentEditable = 'true';
@@ -1267,11 +1282,17 @@ window.applySiteData = function(d) {
 
 // ══ INIT ══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Vérifier ?admin=1
   const params = new URLSearchParams(window.location.search);
   if (params.get('admin') === '1') {
     if (sessionStorage.getItem('pilotAdmin') === '1') startEditor();
     else document.getElementById('adminLogin').classList.add('show');
   }
+
+  // Démarrer les listeners Firebase une fois applySiteData défini
+  setTimeout(() => {
+    if (window._startFirebaseListeners) window._startFirebaseListeners();
+  }, 150);
 });
 </script>
 </body>
