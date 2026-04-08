@@ -916,11 +916,10 @@ footer {
     <ul class="nav-links">
       <li><a href="#fonctionnalites">Fonctionnalités</a></li>
       <li><a href="#telechargement">Téléchargement</a></li>
-      <li><a href="#tarifs">Tarifs</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
     <div class="nav-cta">
-      <a href="#tarifs" class="btn-gold">S'abonner</a>
+      <a href="#contact" class="btn-gold">Nous contacter</a>
     </div>
     <div class="nav-burger" onclick="toggleMenu()" id="burger">
       <span></span><span></span><span></span>
@@ -932,9 +931,7 @@ footer {
 <div class="nav-mobile" id="navMobile">
   <a href="#fonctionnalites" onclick="toggleMenu()">Fonctionnalités</a>
   <a href="#telechargement" onclick="toggleMenu()">Téléchargement</a>
-  <a href="#tarifs" onclick="toggleMenu()">Tarifs</a>
   <a href="#contact" onclick="toggleMenu()">Contact</a>
-  <a href="#tarifs" onclick="toggleMenu()" class="btn-gold" style="text-align:center;border-radius:10px;padding:12px;">S'abonner</a>
 </div>
 
 <!-- ══ HERO ══════════════════════════════════════════════════════ -->
@@ -1112,98 +1109,6 @@ footer {
   </div>
 </section>
 
-<!-- ══ TARIFS ══════════════════════════════════════════════════ -->
-<section id="tarifs">
-  <div class="container">
-    <div class="section-header reveal">
-      <div class="section-badge">💳 Tarifs</div>
-      <h2>Des tarifs <span class="grad-text">simples</span></h2>
-      <p>Un seul abonnement couvre le logiciel, l'app mobile et l'accès cloud. Résiliable à tout moment.</p>
-    </div>
-
-    <div class="pricing-toggle reveal">
-      <span class="toggle-label active" id="lblMensuel">Mensuel</span>
-      <div class="toggle-switch" id="toggleSwitch" onclick="togglePricing()"></div>
-      <span class="toggle-label" id="lblAnnuel">Annuel</span>
-      <span class="annual-badge" id="annualBadge" style="opacity:.4;">Économisez 50€</span>
-    </div>
-
-    <div class="plans-grid reveal">
-
-      <!-- Plan Mensuel -->
-      <div class="plan-card">
-        <div class="plan-name">Mensuel</div>
-        <div class="plan-price">
-          <div>
-            <span class="currency">€</span>
-            <span class="amount" id="priceM">25</span>
-          </div>
-          <div class="period" id="periodM">par mois, sans engagement</div>
-        </div>
-        <ul class="plan-features">
-          <li>2 bornes photobooth incluses</li>
-          <li>App mobile iOS + Android</li>
-          <li>Logiciel Windows (toutes mises à jour)</li>
-          <li>Monitoring imprimante temps réel</li>
-          <li>Statistiques et galerie photos</li>
-          <li>Gestion des événements</li>
-          <li>Support IA intégré</li>
-          <li>Notifications push</li>
-        </ul>
-        <a href="https://buy.stripe.com/test_fZu3coeqq5YMcpn9U5fIs00" target="_blank" class="dl-btn btn-outline">
-          Choisir ce plan
-        </a>
-      </div>
-
-      <!-- Plan Annuel -->
-      <div class="plan-card popular">
-        <div class="popular-badge">MEILLEURE VALEUR</div>
-        <div class="plan-name">Annuel</div>
-        <div class="plan-price">
-          <div>
-            <span class="currency">€</span>
-            <span class="amount" id="priceA">250</span>
-          </div>
-          <div class="period" id="periodA">par an — soit 20,83€/mois</div>
-          <div class="savings">Économisez 50€ par rapport au mensuel</div>
-        </div>
-        <ul class="plan-features">
-          <li>4 bornes photobooth incluses</li>
-          <li>App mobile iOS + Android</li>
-          <li>Logiciel Windows (toutes mises à jour)</li>
-          <li>Monitoring imprimante temps réel</li>
-          <li>Statistiques et galerie photos</li>
-          <li>Gestion des événements</li>
-          <li>Support IA intégré</li>
-          <li>Notifications push</li>
-          <li>Accès prioritaire aux nouvelles fonctionnalités</li>
-        </ul>
-        <a href="https://buy.stripe.com/test_5kQdR24PQ72Q9dbaY9fIs01" target="_blank" class="dl-btn btn-gold">
-          Choisir ce plan →
-        </a>
-      </div>
-
-    </div>
-
-    <!-- Borne supplémentaire -->
-    <div class="plan-extra reveal">
-      <div class="plan-extra-info">
-        <h4>Borne supplémentaire</h4>
-        <p>Vous avez déjà un abonnement actif et souhaitez ajouter une borne supplémentaire.</p>
-      </div>
-      <div class="plan-extra-price" id="extraPrice">+6€ / mois</div>
-      <a href="https://buy.stripe.com/test_28EbIUbee9aY60Z7LXfIs02" target="_blank" class="btn-outline" id="borneSupBtn">Ajouter une borne</a>
-    </div>
-
-    <div class="pricing-note reveal">
-      <span class="test-badge">⚠ Mode test — paiements non réels</span>
-      <a href="https://billing.stripe.com/p/login/test_fZu3coeqq5YMcpn9U5fIs00" target="_blank" class="portal-link">
-        🔑 Portail client — gérer mon abonnement
-      </a>
-    </div>
-  </div>
-</section>
-
 <!-- ══ CONTACT ══════════════════════════════════════════════════ -->
 <section id="contact">
   <div class="container">
@@ -1273,7 +1178,6 @@ footer {
           <li><a href="#telechargement">Télécharger le logiciel</a></li>
           <li><a href="#telechargement">App iOS</a></li>
           <li><a href="#telechargement">App Android</a></li>
-          <li><a href="#tarifs">Tarifs</a></li>
         </ul>
       </div>
       <div class="footer-col">
